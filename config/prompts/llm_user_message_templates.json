@@ -1,0 +1,9 @@
+{
+  "field": "Field: {label}\nDescription: {description}\nRules: {rules}\nRequired value type: {value_type}\nAllowed values: {allowed_values}",
+  "field_id": "Field ID: {id}\n{specification}",
+  "passage": "[{id}] Section: {section}\n{text}",
+  "extract": "{specification}\n\nEvidence:\n{passages}",
+  "group": "Topic group: {label}\n\nFIELDS:\n{specifications}\n\nEVIDENCE:\n{passages}",
+  "full": "FIELDS:\n{specifications}\n\n--- BEGIN PAPER ---\n{paper}\n--- END PAPER ---",
+  "planner_field": "Field: {label}\nRetrieval question: {description}"
+}

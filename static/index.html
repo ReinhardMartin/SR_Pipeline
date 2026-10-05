@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extraction Pipeline</title>
+<style>
+:root {
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f5f6;
+  --color-border: #e7e7ea;
+  --color-border-strong: #d6d6db;
+  --color-text: #131316;
+  --color-text-secondary: #57575f;
+  --color-text-muted: #6f6f78;
+
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+  --color-accent-bg: #f0f0fe;
+
+  --color-action: #131316;
+  --color-action-hover: #303036;
+
+  --color-success: #15803d;
+  --color-success-bg: #ecfdf3;
+  --color-success-border: #86e0ac;
+
+  --color-info: #1d4ed8;
+  --color-info-bg: #eff4ff;
+  --color-info-border: #a8c6fb;
+
+  --color-danger: #b3261e;
+  --color-danger-bg: #fdecea;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --font-xs: 11px;
+  --font-sm: 12.5px;
+  --font-base: 13.5px;
+  --font-md: 14.5px;
+  --font-lg: 17px;
+  --font-xl: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(15,15,20,.05);
+  --shadow-md: 0 8px 24px rgba(15,15,20,.10), 0 1px 2px rgba(15,15,20,.04);
+  --focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: var(--font-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
+
+a { color: var(--color-accent); }
+
+svg { display: block; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: 8px; top: -48px; z-index: 100;
+  background: var(--color-text); color: #fff; padding: 10px 16px;
+  border-radius: var(--radius-md); font-size: var(--font-sm); font-weight: 600;
+  transition: top .15s;
+}
+.skip-link:focus { top: 8px; }
+
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+header {
+  background: #131316; color: #fff; padding: var(--space-4) var(--space-6);
+  display: flex; align-items: center; gap: var(--space-3);
+}
+.brand-mark {
+  width: 18px; height: 18px; border-radius: 5px;
+  background: linear-gradient(135deg, var(--color-accent), #8b7ff0);
+  flex-shrink: 0;
+}
+header .app-title { font-size: var(--font-lg); font-weight: 600; letter-spacing: -.2px; }
+header .app-subtitle { font-size: var(--font-sm); color: #96969f; padding-left: var(--space-2); border-left: 1px solid #38383f; margin-left: 2px; }
+
+.layout { display: grid; grid-template-columns: 272px 1fr; height: calc(100vh - 54px); }
+
+.sidebar {
+  background: var(--color-surface); border-right: 1px solid var(--color-border);
+  overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4);
+}
+.main { overflow-y: auto; padding: var(--space-6) var(--space-6) var(--space-7, 56px); }
+.main:focus-visible { outline: none; }
+
+.upload-area {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg); padding: var(--space-4); text-align: center;
+  cursor: pointer; transition: all .15s; color: var(--color-text-secondary); font-size: var(--font-base);
+}
+.upload-area:hover, .upload-area.over { border-color: var(--color-accent); background: var(--color-accent-bg); color: var(--color-accent); }
+.upload-area:focus-within { border-color: var(--color-accent); box-shadow: var(--focus-ring); }
+.upload-input {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+}
+.upload-icon { margin-bottom: var(--space-1); opacity: .8; }
+.upload-hint { font-size: var(--font-xs); margin-top: 1px; color: var(--color-text-muted); }
+
+.papers-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.papers-toolbar-label { font-size: var(--font-xs); color: var(--color-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.papers-list { display: flex; flex-direction: column; gap: 2px; }
+.paper-card { border-radius: var(--radius-md); border-left: 2px solid transparent; }
+.paper-card.active { background: var(--color-accent-bg); border-left-color: var(--color-accent); }
+.paper-select-btn {
+  display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  padding: var(--space-2) var(--space-3) 6px; border-radius: 0 var(--radius-md) 0 0;
+}
+.paper-card:not(.active) .paper-select-btn:hover { background: var(--color-surface-hover); }
+.paper-name { font-weight: 500; word-break: break-all; font-size: var(--font-base); }
+
+.stage-buttons { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 var(--space-3) var(--space-2); }
+.btn-stage {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 7px; font-size: var(--font-xs); border-radius: 999px;
+  border: 1px solid var(--color-border-strong); background: var(--color-surface); cursor: pointer;
+  color: var(--color-text-secondary); font-weight: 500; transition: all .12s;
+}
+.btn-stage .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-border-strong); flex-shrink: 0; }
+.btn-stage:hover:not(:disabled) { border-color: var(--color-text); color: var(--color-text); }
+.btn-stage:disabled { color: #c6c6cc; border-color: #ececef; cursor: not-allowed; }
+.btn-stage:disabled .dot { background: #dcdce0; }
+.btn-stage.done { color: var(--color-success); border-color: var(--color-success-border); background: var(--color-success-bg); }
+.btn-stage.done .dot { background: var(--color-success); }
+.btn-stage.done:hover:not(:disabled) { border-color: var(--color-success); }
+.btn-stage.running { color: var(--color-info); border-color: var(--color-info-border); background: var(--color-info-bg); cursor: wait; }
+.btn-stage.running .dot { background: var(--color-info); animation: pulse 1.1s ease-in-out infinite; }
+.btn-stage.all { background: var(--color-action); color: #fff; border-color: var(--color-action); }
+.btn-stage.all .dot { background: #fff; }
+.btn-stage.all:hover:not(:disabled) { background: var(--color-action-hover); border-color: var(--color-action-hover); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+.sidebar-nav { margin-top: auto; padding-top: var(--space-3); border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 1px; }
+.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  color: var(--color-text-secondary); font-size: var(--font-base); font-weight: 500;
+}
+.nav-link:hover { background: var(--color-surface-hover); color: var(--color-text); }
+.nav-link svg { opacity: .65; flex-shrink: 0; }
+.nav-link:hover svg { opacity: .9; }
+
+.btn {
+  padding: 7px var(--space-3); border-radius: var(--radius-md); border: 1px solid transparent;
+  cursor: pointer; font-size: var(--font-sm); font-weight: 500; transition: background .1s, border-color .1s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-block { width: 100%; justify-content: center; }
+.btn-primary { background: var(--color-action); color: #fff; }
+.btn-primary:hover { background: var(--color-action-hover); }
+.btn-secondary { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border-strong); }
+.btn-secondary:hover { background: var(--color-surface-hover); border-color: var(--color-text-muted); }
+.btn-sm { padding: 2px 8px; font-size: var(--font-xs); border-radius: var(--radius-sm); border: 1px solid var(--color-border-strong); background: var(--color-surface); cursor: pointer; color: var(--color-text-secondary); }
+.btn-sm:hover { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+.btn-icon {
+  background: none; border: none; cursor: pointer; color: #c6c6cc; font-size: 18px; line-height: 1; padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.btn-icon:hover { color: var(--color-danger); background: var(--color-danger-bg); }
+
+.status-bar { padding: var(--space-3) var(--space-4); background: var(--color-info-bg); border-radius: var(--radius-md); color: var(--color-info); font-size: var(--font-base); margin-bottom: var(--space-5); min-height: 40px; display: flex; align-items: center; }
+
+.tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-6); }
+.tab {
+  padding: var(--space-2) var(--space-4) 11px; cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--color-text-muted);
+  font-weight: 500; font-size: var(--font-base); transition: all .12s;
+}
+.tab:hover { color: var(--color-text); }
+.tab[aria-selected="true"] { border-bottom-color: var(--color-accent); color: var(--color-text); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.table-wrap { border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--color-surface); }
+th { background: #fbfbfc; padding: var(--space-3) var(--space-4); text-align: left; font-weight: 600; border-bottom: 1px solid var(--color-border); font-size: var(--font-base); }
+td, th[scope="row"] { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); vertical-align: top; }
+tr:last-child td, tr:last-child th { border-bottom: none; }
+th[scope="row"] { font-weight: 500; width: 160px; white-space: nowrap; text-align: left; }
+
+.conf { font-weight: 600; font-size: var(--font-xs); text-transform: uppercase; letter-spacing: .3px; }
+.conf-high   { color: var(--color-success); }
+.conf-medium { color: #92400e; }
+.conf-low    { color: var(--color-danger); }
+
+.decision { display: inline-block; font-weight: 600; font-size: var(--font-xs); text-transform: uppercase; letter-spacing: .3px; padding: 2px 8px; border-radius: 999px; }
+.decision-include { color: var(--color-success); background: var(--color-success-bg); }
+.decision-exclude { color: var(--color-danger); background: var(--color-danger-bg); }
+.decision-maybe   { color: #92400e; background: #fffbeb; }
+.decision-missing { color: var(--color-text-secondary); background: var(--color-surface-hover); }
+
+.accordion { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.acc-header {
+  width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  padding: var(--space-3) var(--space-4); font-weight: 500; border-bottom: 1px solid var(--color-border);
+  display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);
+}
+.acc-header:hover { background: var(--color-surface-hover); }
+.acc-meta { font-size: var(--font-xs); color: var(--color-text-muted); font-weight: 400; white-space: nowrap; }
+.acc-body { display: none; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); background: var(--color-bg); }
+.acc-body.open { display: block; }
+.accordion > div:last-child .acc-body { border-bottom: none; }
+
+.chunk { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-2); }
+.chunk:last-child { margin-bottom: 0; }
+.chunk-meta { font-size: var(--font-xs); color: var(--color-text-muted); margin-bottom: var(--space-2); font-family: ui-monospace, "SF Mono", monospace; }
+.chunk-text { font-size: var(--font-base); line-height: 1.6; white-space: pre-wrap; }
+.chunk-actions { margin-top: var(--space-2); display: flex; gap: var(--space-2); }
+.tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 999px; margin: 2px 4px 0 0; font-weight: 500; }
+.tag-dense { background: var(--color-accent-bg); color: var(--color-accent); }
+.tag-sparse { background: #fffbeb; color: #b45309; }
+
+.empty { color: var(--color-text-muted); padding: var(--space-6); text-align: center; font-size: var(--font-base); }
+.section-title { font-size: var(--font-xl); font-weight: 650; letter-spacing: -.3px; margin-bottom: 4px; }
+.section-sub   { color: var(--color-text-muted); font-size: var(--font-base); margin-bottom: var(--space-5); }
+
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); position: relative; }
+.card-heading { font-size: var(--font-xs); color: var(--color-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: var(--space-3); }
+.field-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3); }
+.field-row:last-child { margin-bottom: 0; }
+.field-label { font-size: var(--font-sm); font-weight: 600; color: var(--color-text-secondary); display: block; }
+.field-hint { color: var(--color-text-muted); font-weight: 400; }
+.field-input {
+  width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 7px 10px; font-size: var(--font-base); font-family: inherit; resize: vertical; background: var(--color-surface); color: var(--color-text);
+}
+.field-input:focus-visible { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+.field-input.mono { font-family: ui-monospace, "SF Mono", monospace; }
+.required { color: var(--color-danger); }
+
+.btn-add { border: 1.5px dashed var(--color-border-strong); background: none; width: 100%; padding: var(--space-3); border-radius: var(--radius-lg); cursor: pointer; color: var(--color-text-muted); font-size: var(--font-base); font-weight: 500; transition: all .15s; }
+.btn-add:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
+
+.toolbar { display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-5); flex-wrap: wrap; }
+.status-msg { font-size: var(--font-base); }
+.status-msg.ok  { color: var(--color-success); }
+.status-msg.err { color: var(--color-danger); }
+.status-msg.pending { color: var(--color-text-muted); }
+
+.form-grid { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); flex-wrap: wrap; align-items: flex-end; }
+.form-grid .field-row { margin-bottom: 0; }
+.field-inline { display: flex; align-items: center; gap: 6px; font-size: var(--font-sm); color: var(--color-text-secondary); white-space: nowrap; }
+
+.score-row { display: flex; align-items: center; gap: var(--space-3); margin-bottom: 7px; font-size: var(--font-base); }
+.score-bar-wrap { flex: 1; background: var(--color-border); border-radius: 999px; overflow: hidden; height: 6px; }
+.score-bar { height: 100%; background: var(--color-accent); border-radius: 999px; }
+.score-val { font-family: ui-monospace, "SF Mono", monospace; font-size: var(--font-xs); color: var(--color-text-secondary); width: 60px; text-align: right; }
+.criterion-review-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-3); }
+.criterion-review-card:last-child { margin-bottom: 0; }
+.criterion-review-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.criterion-review-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.btn-sm.selected { background: var(--color-action); color: #fff; border-color: var(--color-action); }
+.model-assessment { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
+.model-assessment-heading { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.model-hidden { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface-hover); color: var(--color-text-muted); font-size: var(--font-sm); }
+.nli-score-row { display: grid; grid-template-columns: 105px minmax(120px, 1fr) 52px; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.nli-score-label { font-size: var(--font-sm); color: var(--color-text-secondary); }
+.nli-score-track { position: relative; height: 10px; background: var(--color-border); border-radius: 999px; }
+.nli-score-fill { height: 100%; border-radius: 999px; }
+.nli-score-entailment { background: #2563eb; }
+.nli-score-contradiction { background: #7c3aed; }
+.nli-score-neutral { background: #64748b; }
+.nli-threshold-marker { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--color-text); border-radius: 1px; transform: translateX(-1px); }
+.nli-score-value { font-family: ui-monospace, "SF Mono", monospace; font-size: var(--font-xs); color: var(--color-text-secondary); text-align: right; }
+.review-agreement { font-size: var(--font-xs); font-weight: 600; }
+.review-agreement.yes { color: var(--color-success); }
+.review-agreement.no { color: var(--color-danger); }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#mainContent">Skip to main content</a>
+<header>
+  <span class="brand-mark" aria-hidden="true"></span>
+  <span class="app-title">Extraction Pipeline</span>
+  <span class="app-subtitle">systematic review data extraction</span>
+</header>
+<div class="layout">
+
+  <nav class="sidebar" aria-label="Papers and settings">
+    <label class="upload-area" id="uploadArea" for="fileInput">
+      <input class="upload-input" type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(this)" aria-label="Upload PDF">
+      <svg class="upload-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <path d="M14 2v6h6"/>
+        <path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/>
+      </svg>
+      <div>Upload PDF</div>
+      <div class="upload-hint">click or drag &amp; drop</div>
+    </label>
+
+    <div class="papers-toolbar">
+      <span class="papers-toolbar-label">Papers</span>
+      <button type="button" class="btn-sm" onclick="runAllPapers()">Run all</button>
+    </div>
+    <div class="papers-list" id="papersList" aria-label="Papers" role="list">
+      <div class="empty">No papers yet</div>
+    </div>
+    <p id="bulkStatus" class="acc-meta" role="status" aria-live="polite" style="min-height:14px"></p>
+
+    <div class="sidebar-nav">
+      <button class="nav-link" onclick="openFields()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Extraction plan
+      </button>
+      <button class="nav-link" onclick="openTools()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        Tools
+      </button>
+      <button class="nav-link" onclick="openSettings()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+      <button class="nav-link" onclick="openExport()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Export
+      </button>
+      <button class="nav-link" onclick="openScreening()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Screening
+      </button>
+    </div>
+  </nav>
+
+  <main class="main" id="mainContent" tabindex="-1">
+    <div class="empty" style="padding-top:80px">Select a paper from the sidebar</div>
+  </main>
+
+</div>
+<script src="/static/screening-setup.js"></script>
+<script>
+let currentPaper = null;
+const running = new Set();
+
+
+async function handleFileSelect(input) {
+  const file = input.files[0];
+  if (file) await doUpload(file);
+  input.value = '';
+}
+
+async function doUpload(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  await fetch('/upload', { method: 'POST', body: fd });
+  await refreshPapers();
+}
+
+const ua = document.getElementById('uploadArea');
+ua.addEventListener('dragover',  e => { e.preventDefault(); ua.classList.add('over'); });
+ua.addEventListener('dragleave', () => ua.classList.remove('over'));
+ua.addEventListener('drop', async e => {
+  e.preventDefault(); ua.classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file) await doUpload(file);
+});
+
+
+function stemBusy(stem) {
+  return [...running].some(k => k.startsWith(`${stem}:`));
+}
+
+function stageBtn(stem, stage, label, enabled, done, isAll = false) {
+  const key = `${stem}:${stage}`;
+  const isRunning = running.has(key);
+  const busy = stemBusy(stem);
+  const isDisabled = isRunning || (busy && !isRunning) || (!enabled && !isRunning);
+  const cls = isRunning ? 'btn-stage running' : isAll ? 'btn-stage all' : done ? 'btn-stage done' : 'btn-stage';
+  const text = isRunning ? '…' : label;
+  const stateLabel = isRunning ? `${label}: running` : done ? `${label}: done` : label;
+  return `<button type="button" class="${cls}" ${isDisabled ? 'disabled' : ''} aria-label="${esc(stateLabel)}"
+    data-paper-action="stage" data-stem="${esc(stem)}" data-stage="${esc(stage)}"><span class="dot" aria-hidden="true"></span>${esc(text)}</button>`;
+}
+
+async function refreshPapers() {
+  const papers = await fetch('/papers').then(r => r.json());
+  const el = document.getElementById('papersList');
+  if (!papers.length) { el.innerHTML = '<div class="empty">No papers yet</div>'; return; }
+  el.innerHTML = papers.map(p => `
+    <div class="paper-card ${currentPaper === p.stem ? 'active' : ''}" role="listitem">
+      <button type="button" class="paper-select-btn" aria-current="${currentPaper === p.stem ? 'true' : 'false'}" data-paper-action="select" data-stem="${esc(p.stem)}">
+        <span class="paper-name">${esc(p.stem)}</span>
+      </button>
+      <div class="stage-buttons">
+        ${stageBtn(p.stem, 'parse',    'Parse',    p.has_pdf,    p.has_parsed)}
+        ${stageBtn(p.stem, 'index',    'Index',    p.has_parsed, p.has_index)}
+        ${stageBtn(p.stem, 'retrieve', 'Retrieve', p.has_index,  p.has_evidence)}
+        ${stageBtn(p.stem, 'extract',      'Extract',  p.has_evidence,    p.has_extraction)}
+        ${stageBtn(p.stem, 'extract-full', 'Full',     p.has_parsed,      p.has_full_extraction)}
+        ${stageBtn(p.stem, 'run',          'All',      p.has_pdf,         false, true)}
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('papersList').addEventListener('click', event => {
+  const control = event.target.closest('[data-paper-action]');
+  if (!control) return;
+  if (control.dataset.paperAction === 'select') selectPaper(control.dataset.stem);
+  if (control.dataset.paperAction === 'stage') runStage(control.dataset.stem, control.dataset.stage);
+});
+
+
+async function runStage(stem, stage) {
+  const key = `${stem}:${stage}`;
+  if (running.has(key)) return;
+  running.add(key);
+  await refreshPapers();
+
+  const res = await fetch(`/papers/${encodeURIComponent(stem)}/${stage}`, { method: 'POST' });
+  if (!res.ok) {
+    running.delete(key);
+    await refreshPapers();
+    const err = await res.json().catch(() => ({}));
+    alert(err.detail || 'Request failed');
+    return;
+  }
+
+  const { job_id } = await res.json();
+  const t = setInterval(async () => {
+    const job = await fetch(`/jobs/${job_id}`).then(r => r.json());
+    if (currentPaper === stem) {
+      const sb = document.getElementById('statusBar');
+      if (sb) sb.textContent = `Working: ${job.message}`;
+    }
+    if (job.status === 'done' || job.status === 'error') {
+      clearInterval(t);
+      running.delete(key);
+      if (job.status === 'error') alert(`Error in ${stage}:\n${job.error}`);
+      await refreshPapers();
+      if (currentPaper === stem) selectPaper(stem);
+    }
+  }, 1500);
+}
+
+
+async function runAllPapers() {
+  const bulkStatus = document.getElementById('bulkStatus');
+  if (!confirm('Run the full pipeline (parse → index → retrieve → extract) on every paper that isn\'t already fully processed? This will make real LLM calls.')) return;
+
+  const res = await fetch('/papers/run-all', { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.detail || 'Request failed');
+    return;
+  }
+  const { job_ids, skipped } = await res.json();
+  const stems = Object.keys(job_ids);
+  if (!stems.length) {
+    bulkStatus.textContent = `Nothing to run — ${skipped.length} paper(s) already fully processed or missing a PDF.`;
+    return;
+  }
+  stems.forEach(stem => running.add(`${stem}:run`));
+  await refreshPapers();
+  pollBulkRun(job_ids);
+}
+
+function pollBulkRun(jobIds) {
+  const bulkStatus = document.getElementById('bulkStatus');
+  const entries = Object.entries(jobIds);
+  const t = setInterval(async () => {
+    const statuses = await Promise.all(entries.map(([, jobId]) => fetch(`/jobs/${jobId}`).then(r => r.json())));
+    const finished = statuses.filter(s => s.status === 'done' || s.status === 'error').length;
+    bulkStatus.textContent = `Running: ${finished} / ${entries.length} paper(s) done`;
+    entries.forEach(([stem], i) => {
+      if (statuses[i].status === 'done' || statuses[i].status === 'error') running.delete(`${stem}:run`);
+    });
+    if (finished === entries.length) {
+      clearInterval(t);
+      const errors = statuses.filter(s => s.status === 'error').length;
+      bulkStatus.textContent = errors
+        ? `Finished with ${errors} error(s) out of ${entries.length} — check individual papers.`
+        : `Finished — ${entries.length} paper(s) processed.`;
+      refreshPapers();
+    } else {
+      refreshPapers();
+    }
+  }, 2000);
+}
+
+
+async function selectPaper(stem) {
+  currentPaper = stem;
+  await refreshPapers();
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="section-title">${esc(stem)}</div>
+    <div class="status-bar" id="statusBar" role="status" aria-live="polite">Select a stage to run, or click a tab to view results.</div>
+    <div class="tabs" role="tablist" aria-label="Paper views">
+      <button type="button" class="tab" role="tab" id="tabbtn-comparison" aria-selected="true"  aria-controls="tab-comparison" onclick="switchTab('comparison',this)">Comparison</button>
+      <button type="button" class="tab" role="tab" id="tabbtn-evidence"   aria-selected="false" aria-controls="tab-evidence"   onclick="switchTab('evidence',this)">Retrieve</button>
+      <button type="button" class="tab" role="tab" id="tabbtn-selected"   aria-selected="false" aria-controls="tab-selected"   onclick="switchTab('selected',this)">Selected</button>
+      <button type="button" class="tab" role="tab" id="tabbtn-chunks"     aria-selected="false" aria-controls="tab-chunks"     onclick="switchTab('chunks',this)">Chunks</button>
+    </div>
+    <div class="tab-panel active" id="tab-comparison" role="tabpanel" aria-labelledby="tabbtn-comparison"><div class="empty">Loading…</div></div>
+    <div class="tab-panel"        id="tab-evidence"   role="tabpanel" aria-labelledby="tabbtn-evidence" hidden><div class="empty">Loading…</div></div>
+    <div class="tab-panel"        id="tab-selected"   role="tabpanel" aria-labelledby="tabbtn-selected" hidden><div class="empty">Loading…</div></div>
+    <div class="tab-panel"        id="tab-chunks"     role="tabpanel" aria-labelledby="tabbtn-chunks"   hidden><div class="empty">Loading…</div></div>`;
+
+  loadComparison(stem);
+  loadEvidence(stem);
+  loadSelected(stem);
+  loadChunks(stem);
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+  document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.hidden = true; });
+  el.setAttribute('aria-selected', 'true');
+  const panel = document.getElementById(`tab-${name}`);
+  panel.classList.add('active');
+  panel.hidden = false;
+}
+
+
+async function loadComparison(stem) {
+  const el = document.getElementById('tab-comparison');
+  const [r1, r2] = await Promise.all([
+    fetch(`/papers/${encodeURIComponent(stem)}/extraction`),
+    fetch(`/papers/${encodeURIComponent(stem)}/full_extraction`),
+  ]);
+  if (!r1.ok && !r2.ok) { el.innerHTML = '<div class="empty">No extraction results yet.</div>'; return; }
+  const ext  = r1.ok ? await r1.json() : {};
+  const full = r2.ok ? await r2.json() : {};
+  const fields = [...new Set([...Object.keys(ext), ...Object.keys(full)])];
+  el.innerHTML = `<div class="table-wrap"><table>
+    <caption class="visually-hidden">Extracted values compared between RAG and full-paper strategies</caption>
+    <thead><tr><th scope="col">Field</th><th scope="col">RAG</th><th scope="col">Full Paper</th></tr></thead>
+    <tbody>${fields.map(f => `
+      <tr>
+        <th scope="row">${esc(f)}</th>
+        <td>${fmtExt(ext[f])}</td>
+        <td>${fmtExt(full[f])}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function fmtExt(item) {
+  if (!item) return '<span style="color:var(--color-text-muted)">—</span>';
+  const cc = { high: 'conf-high', medium: 'conf-medium', low: 'conf-low' }[item.confidence] || '';
+  const raw = item.value;
+  const valStr = raw == null
+    ? null
+    : typeof raw === 'object' ? JSON.stringify(raw) : String(raw);
+  const val = valStr != null ? esc(valStr) : '<em style="color:var(--color-text-muted)">null</em>';
+  const quote = item.source_quote ? ` title="${esc(item.source_quote)}"` : '';
+  const section = item.source_section ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);margin-left:6px">${esc(item.source_section)}</span>` : '';
+  const status = item.status ? `<span class="tag">${esc(item.status)}</span>` : '';
+  const error = item.error ? `<div class="status-msg err">${esc(item.error)}</div>` : '';
+  return `<div${quote}>${val}</div><div style="margin-top:4px">${status}<span class="conf ${cc}">${esc(item.confidence ?? '')}</span>${section}</div>${error}`;
+}
+
+
+async function loadEvidence(stem) {
+  const el = document.getElementById('tab-evidence');
+  const res = await fetch(`/papers/${encodeURIComponent(stem)}/retrieve-debug`);
+  if (!res.ok) { el.innerHTML = '<div class="empty">No retrieve results yet — run Retrieve first.</div>'; return; }
+  const debug = await res.json();
+  el.innerHTML = `<div class="accordion">${Object.entries(debug).map(([label, d], i) => fieldRetrieveHTML(label, d, i)).join('')}</div>`;
+}
+
+function toggleAcc(btn) {
+  const body = document.getElementById(btn.getAttribute('aria-controls'));
+  const open = body.classList.toggle('open');
+  btn.setAttribute('aria-expanded', String(open));
+}
+
+function fieldRetrieveHTML(label, d, i) {
+  const kept = d.kept || [];
+  const bodyId = `retrieve-body-${i}`;
+  return `
+    <div>
+      <button type="button" class="acc-header" aria-expanded="true" aria-controls="${bodyId}" onclick="toggleAcc(this)">
+        <span>${esc(label)}</span>
+        <span class="acc-meta">dense ${d.dense.length} · sparse ${d.sparse.length} · intersection ${d.intersection.length} · kept ${kept.length}</span>
+      </button>
+      <div class="acc-body open" id="${bodyId}">
+        ${kept.length ? kept.map(retrieveChunkHTML).join('') : '<div class="empty">No chunks retrieved</div>'}
+      </div>
+    </div>`;
+}
+
+function retrieveChunkHTML(c) {
+  const denseTags  = (c.matched_by?.dense  || []).map(q => `<span class="tag tag-dense">${esc(q)}</span>`).join('');
+  const sparseTags = (c.matched_by?.sparse || []).map(k => `<span class="tag tag-sparse">${esc(k)}</span>`).join('');
+  return `
+    <div class="chunk">
+      <div class="chunk-meta">${esc(c.id)} · §${esc(c.section)} · ${esc(c.kind)}</div>
+      <div class="chunk-text">${esc(c.text)}</div>
+      <div style="margin-top:6px">${denseTags}${sparseTags}</div>
+    </div>`;
+}
+
+
+async function loadSelected(stem) {
+  const el = document.getElementById('tab-selected');
+  const res = await fetch(`/papers/${encodeURIComponent(stem)}/evidence`);
+  if (!res.ok) { el.innerHTML = '<div class="empty">No evidence yet — run Retrieve first.</div>'; return; }
+  const evidence = await res.json();
+  el.innerHTML = `<div class="accordion">${Object.entries(evidence).map(([label, chunks], i) => fieldSelectedHTML(label, chunks, i)).join('')}</div>`;
+}
+
+function fieldSelectedHTML(label, chunks, i) {
+  const bodyId = `selected-body-${i}`;
+  return `
+    <div>
+      <button type="button" class="acc-header" aria-expanded="true" aria-controls="${bodyId}" onclick="toggleAcc(this)">
+        <span>${esc(label)}</span>
+        <span class="acc-meta">${chunks.length} chunk${chunks.length === 1 ? '' : 's'} sent to the LLM, in document order</span>
+      </button>
+      <div class="acc-body open" id="${bodyId}">
+        ${chunks.length ? chunks.map(selectedChunkHTML).join('') : '<div class="empty">No chunks selected</div>'}
+      </div>
+    </div>`;
+}
+
+function selectedChunkHTML(c) {
+  return `
+    <div class="chunk">
+      <div class="chunk-meta">${esc(c.id)} · §${esc(c.section)} · ${esc(c.kind)}</div>
+      <div class="chunk-text">${esc(c.text)}</div>
+    </div>`;
+}
+
+
+async function loadChunks(stem) {
+  const el = document.getElementById('tab-chunks');
+  const res = await fetch(`/papers/${encodeURIComponent(stem)}/chunks`);
+  if (!res.ok) { el.innerHTML = '<div class="empty">No chunks yet — run Index first.</div>'; return; }
+  const chunks = await res.json();
+  el.innerHTML = `
+    <p style="color:var(--color-text-muted);margin-bottom:var(--space-3);font-size:var(--font-base)">${chunks.length} chunks</p>
+    ${chunks.map(c => `
+      <div class="chunk" style="margin-bottom:6px">
+        <div class="chunk-meta">${esc(c.id)} · §${esc(c.section)} · ${esc(c.kind)} · ${esc(c.tokens)} tokens</div>
+        <div class="chunk-text">${esc(c.text)}</div>
+      </div>`).join('')}`;
+}
+
+
+function esc(s) {
+  const str = (s == null) ? '' : (typeof s === 'object' ? JSON.stringify(s) : String(s));
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function deselectPaper() {
+  currentPaper = null;
+  refreshPapers();
+}
+
+
+let _fieldGroups = [];
+let _fieldsJsonMode = false;
+
+async function openFields() {
+  deselectPaper();
+  const table = await fetch('/data-table').then(res => res.json());
+  _fieldGroups = table.groups.map(group => ({ ...group, fields: group.fields.map(field => ({ ...field })) }));
+  renderFieldEditor();
+}
+
+function currentFieldsSchema() { return { schema_version: '3.0', groups: _fieldGroups }; }
+
+function renderFieldEditor() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="section-title">Full-text Extraction Plan</h1>
+    <p class="section-sub">Define exactly what the full-text module must extract. Add or remove topic groups and fields, then complete each field's form. Every field is retrieved independently; related fields are extracted together and validated separately.</p>
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" onclick="saveFields()">Save extraction plan</button>
+      <button type="button" class="btn btn-secondary" onclick="saveAndGeneratePlan()">Save &amp; generate retrieval queries</button>
+      <button type="button" class="btn btn-secondary" onclick="openPlan()">View/edit generated queries</button>
+      <button type="button" class="btn btn-secondary" onclick="toggleFieldsJson()">${_fieldsJsonMode ? 'Group editor' : 'Edit JSON'}</button>
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('fieldsJsonFile').click()">Import JSON</button>
+      <button type="button" class="btn btn-secondary" onclick="downloadFieldsJson()">Download JSON</button>
+      <input id="fieldsJsonFile" type="file" accept="application/json,.json" hidden onchange="importFieldsJson(this.files[0]);this.value=''">
+      <span id="fieldStatus" class="status-msg" role="status" aria-live="polite"></span>
+    </div>
+    ${_fieldsJsonMode ? `
+      <div class="card">
+        <div class="card-heading">Full-text extraction plan JSON</div>
+        <textarea class="field-input" id="fieldsJsonEditor" rows="28" spellcheck="false">${esc(JSON.stringify(currentFieldsSchema(), null, 2))}</textarea>
+        <div class="toolbar" style="margin-top:var(--space-3)"><button type="button" class="btn btn-primary" onclick="applyFieldsJson()">Apply JSON</button></div>
+      </div>` : `
+      <div id="fieldsContainer">${_fieldGroups.map((group, i) => fieldGroupHTML(group, i)).join('')}</div>
+      <button type="button" class="btn-add" onclick="addFieldGroup()">+ Add topic group</button>`}`;
+}
+
+function fieldGroupHTML(group, groupIndex) {
+  return `
+    <div class="card" id="field-group-${groupIndex}">
+      <div class="card-heading">Topic group ${groupIndex + 1}</div>
+      <button type="button" class="btn-icon" style="position:absolute;top:14px;right:16px" onclick="deleteFieldGroup(${groupIndex})" aria-label="Remove group ${groupIndex + 1}">×</button>
+      <div class="field-row">
+        <label class="field-label" for="group-${groupIndex}-label">Topic label <span class="required">*</span></label>
+        <input class="field-input" id="group-${groupIndex}-label" value="${esc(group.label || '')}" placeholder="e.g. Population" oninput="_fieldGroups[${groupIndex}].label=this.value">
+      </div>
+      <div style="margin-left:var(--space-4)">
+        ${group.fields.map((field, i) => fieldCardHTML(field, groupIndex, i)).join('') || '<p class="empty">No extraction fields in this group.</p>'}
+        <button type="button" class="btn-add" onclick="addField(${groupIndex})">+ Add field to ${esc(group.label || 'this topic')}</button>
+      </div>
+    </div>`;
+}
+
+function fieldCardHTML(field, groupIndex, fieldIndex) {
+  const prefix = `field-${groupIndex}-${fieldIndex}`;
+  return `
+    <div class="card" id="${prefix}">
+      <div class="card-heading">Extraction field ${fieldIndex + 1}</div>
+      <button type="button" class="btn-icon" style="position:absolute;top:14px;right:16px" onclick="deleteField(${groupIndex},${fieldIndex})" aria-label="Remove extraction field ${fieldIndex + 1}">×</button>
+      <div class="field-row"><label class="field-label" for="${prefix}-label">Label <span class="required">*</span></label>
+        <input class="field-input" id="${prefix}-label" value="${esc(field.label || '')}" placeholder="e.g. Sample size recruited" oninput="updateField(${groupIndex},${fieldIndex},'label',this.value)"></div>
+      <div class="field-row"><label class="field-label" for="${prefix}-desc">Retrieval question <span class="required">*</span></label>
+        <textarea class="field-input" id="${prefix}-desc" rows="2" placeholder="What exact fact should be found?" oninput="updateField(${groupIndex},${fieldIndex},'description',this.value)">${esc(field.description || '')}</textarea></div>
+      <div class="field-row"><label class="field-label" for="${prefix}-rules">Extraction rules <span class="field-hint">(optional; not sent to the planner)</span></label>
+        <textarea class="field-input" id="${prefix}-rules" rows="2" placeholder="Final extraction and validation instructions" oninput="updateField(${groupIndex},${fieldIndex},'rules',this.value)">${esc(field.rules || '')}</textarea></div>
+      <div class="form-grid">
+        <div class="field-row"><label class="field-label" for="${prefix}-id">Stable ID <span class="field-hint">(generated from the label if blank)</span></label>
+          <input class="field-input" id="${prefix}-id" value="${esc(field.id || '')}" placeholder="sample_size_recruited" oninput="updateField(${groupIndex},${fieldIndex},'id',this.value)"></div>
+        <div class="field-row"><label class="field-label" for="${prefix}-type">Value type</label>
+          <select class="field-input" id="${prefix}-type" onchange="updateField(${groupIndex},${fieldIndex},'value_type',this.value)">${['string','integer','number','boolean','array'].map(type => `<option value="${type}" ${field.value_type === type ? 'selected' : ''}>${type}</option>`).join('')}</select></div>
+        <div class="field-row" style="flex:2"><label class="field-label" for="${prefix}-allowed">Allowed values <span class="field-hint">(optional, comma-separated)</span></label>
+          <input class="field-input" id="${prefix}-allowed" value="${esc((field.allowed_values || []).join(', '))}" oninput="updateField(${groupIndex},${fieldIndex},'allowed_values',this.value.split(',').map(x=>x.trim()).filter(Boolean))"></div>
+      </div>
+    </div>`;
+}
+
+function updateField(groupIndex, fieldIndex, key, value) {
+  _fieldGroups[groupIndex].fields[fieldIndex][key] = value;
+}
+function fieldIdFromLabel(label) {
+  return label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+function emptyExtractionField() {
+  return { id: '', label: '', description: '', rules: '', value_type: 'string', allowed_values: null };
+}
+function addFieldGroup() {
+  _fieldGroups.push({ label: '', fields: [emptyExtractionField()] });
+  renderFieldEditor();
+  document.getElementById(`group-${_fieldGroups.length - 1}-label`)?.focus();
+}
+function deleteFieldGroup(groupIndex) { _fieldGroups.splice(groupIndex, 1); renderFieldEditor(); }
+function addField(groupIndex) {
+  _fieldGroups[groupIndex].fields.push(emptyExtractionField());
+  const fieldIndex = _fieldGroups[groupIndex].fields.length - 1;
+  renderFieldEditor();
+  document.getElementById(`field-${groupIndex}-${fieldIndex}-label`)?.focus();
+}
+function deleteField(groupIndex, fieldIndex) { _fieldGroups[groupIndex].fields.splice(fieldIndex, 1); renderFieldEditor(); }
+
+function parseFieldsJson(rawText) {
+  const parsed = JSON.parse(rawText);
+  if (!parsed || !Array.isArray(parsed.groups)) throw new Error('The schema needs a "groups" array.');
+  for (const group of parsed.groups) {
+    if (!group || typeof group.label !== 'string' || !Array.isArray(group.fields)) throw new Error('Every group needs a label and a fields array.');
+  }
+  return parsed.groups.map(group => ({ ...group, fields: group.fields.map(field => ({ ...field })) }));
+}
+
+function setFieldStatus(message, kind) {
+  const status = document.getElementById('fieldStatus');
+  if (status) { status.textContent = message; status.className = `status-msg ${kind}`; }
+}
+
+function toggleFieldsJson() {
+  if (_fieldsJsonMode) {
+    try { _fieldGroups = parseFieldsJson(document.getElementById('fieldsJsonEditor').value); }
+    catch (error) { setFieldStatus(error.message, 'err'); return; }
+  }
+  _fieldsJsonMode = !_fieldsJsonMode;
+  renderFieldEditor();
+}
+
+function applyFieldsJson() {
+  try {
+    _fieldGroups = parseFieldsJson(document.getElementById('fieldsJsonEditor').value);
+    document.getElementById('fieldsJsonEditor').value = JSON.stringify(currentFieldsSchema(), null, 2);
+    setFieldStatus('JSON applied — save to persist it.', 'ok');
+  } catch (error) { setFieldStatus(error.message, 'err'); }
+}
+
+async function importFieldsJson(file) {
+  if (!file) return;
+  try {
+    _fieldGroups = parseFieldsJson(await file.text());
+    _fieldsJsonMode = true;
+    renderFieldEditor();
+    setFieldStatus(`Imported ${file.name} — save to persist it.`, 'ok');
+  } catch (error) { setFieldStatus(error.message, 'err'); }
+}
+
+function downloadFieldsJson() {
+  if (_fieldsJsonMode) {
+    try { _fieldGroups = parseFieldsJson(document.getElementById('fieldsJsonEditor').value); }
+    catch (error) { setFieldStatus(error.message, 'err'); return; }
+  }
+  const blob = new Blob([JSON.stringify(currentFieldsSchema(), null, 2) + '\n'], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'data_table.json';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function saveFields() {
+  if (_fieldsJsonMode) {
+    try { _fieldGroups = parseFieldsJson(document.getElementById('fieldsJsonEditor').value); }
+    catch (error) { setFieldStatus(error.message, 'err'); return false; }
+  }
+  const fields = _fieldGroups.flatMap(group => group.fields);
+  const status = document.getElementById('fieldStatus');
+  if (_fieldGroups.some(group => !group.label?.trim())) { status.textContent = 'Every group needs a label.'; status.className = 'status-msg err'; return false; }
+  if (_fieldGroups.some(group => !group.fields.length)) { status.textContent = 'Every group needs at least one extraction field.'; status.className = 'status-msg err'; return false; }
+  if (!fields.length || fields.some(field => !field.label?.trim() || !field.description?.trim())) { status.textContent = 'Every field needs a label and retrieval question.'; status.className = 'status-msg err'; return false; }
+  const cleanGroups = _fieldGroups.map(group => ({
+    label: group.label.trim(),
+    fields: group.fields.map(field => {
+      const clean = { id: field.id?.trim() || fieldIdFromLabel(field.label), label: field.label.trim(), description: field.description.trim(), value_type: field.value_type || 'string' };
+      if (field.rules?.trim()) clean.rules = field.rules.trim();
+      if (field.allowed_values?.length) clean.allowed_values = field.allowed_values;
+      return clean;
+    }),
+  }));
+  const res = await fetch('/data-table', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ schema_version: '3.0', groups: cleanGroups }) });
+  if (res.ok) {
+    const saved = await res.json();
+    _fieldGroups = cleanGroups;
+    status.textContent = saved.status === 'saved_queries_invalidated'
+      ? 'Saved - fields changed, so retrieval queries must be regenerated.'
+      : 'Saved';
+    status.className = 'status-msg ok';
+    return true;
+  } else {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = err.detail || 'Save failed';
+    status.className = 'status-msg err';
+    return false;
+  }
+}
+
+async function saveAndGeneratePlan() {
+  if (!await saveFields()) return;
+  const status = document.getElementById('fieldStatus');
+  status.textContent = 'Generating retrieval queries...';
+  status.className = 'status-msg pending';
+  const res = await fetch('/plan/generate', { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = err.detail || 'Query generation failed';
+    status.className = 'status-msg err';
+    return;
+  }
+  _plan = await res.json();
+  await openPlan();
+  const planStatus = document.getElementById('planStatus');
+  planStatus.textContent = 'Extraction plan saved and queries generated';
+  planStatus.className = 'status-msg ok';
+}
+
+
+let _plan = {};
+let _planLabels = [];
+
+async function openPlan() {
+  deselectPaper();
+  const table = await fetch('/data-table').then(r => r.json());
+  _planLabels = table.groups.flatMap(group => group.fields.map(field => field.label));
+  const res = await fetch('/plan');
+  _plan = res.ok ? await res.json() : {};
+  _planLabels.forEach(label => { if (!_plan[label]) _plan[label] = { queries: [], keywords: [] }; });
+  renderPlanEditor();
+}
+
+function renderPlanEditor() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="section-title">Retrieval Queries</h1>
+    <p class="section-sub">Technical search queries generated for every field in the full-text extraction plan. Add, remove, or redefine fields in the Extraction Plan; edit only their search wording here.</p>
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" onclick="generatePlan()">Generate via LLM</button>
+      <button type="button" class="btn btn-secondary" onclick="savePlan()">Save</button>
+      <button type="button" class="btn btn-secondary" onclick="openFields()">Edit extraction plan</button>
+      <span id="planStatus" class="status-msg" role="status" aria-live="polite"></span>
+    </div>
+    <div id="planContainer">${_planLabels.map((label, i) => planCardHTML(label, i)).join('')}</div>`;
+}
+
+function planCardHTML(label, i) {
+  const entry = _plan[label] || { queries: [], keywords: [] };
+  return `
+    <div class="card">
+      <div class="card-heading">${esc(label)}</div>
+      <div class="field-row">
+        <label class="field-label" for="plan-${i}-queries">Queries <span class="field-hint">(one per line)</span></label>
+        <textarea class="field-input" id="plan-${i}-queries" rows="4"
+          oninput="updatePlanField(${i},'queries',this.value)">${esc((entry.queries || []).join('\n'))}</textarea>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="plan-${i}-keywords">Keywords <span class="field-hint">(one per line)</span></label>
+        <textarea class="field-input" id="plan-${i}-keywords" rows="3"
+          oninput="updatePlanField(${i},'keywords',this.value)">${esc((entry.keywords || []).join('\n'))}</textarea>
+      </div>
+    </div>`;
+}
+
+function updatePlanField(index, key, rawText) {
+  const label = _planLabels[index];
+  if (!_plan[label]) _plan[label] = { queries: [], keywords: [] };
+  _plan[label][key] = rawText.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+async function generatePlan() {
+  const status = document.getElementById('planStatus');
+  status.textContent = 'Generating…'; status.className = 'status-msg pending';
+  const res = await fetch('/plan/generate', { method: 'POST' });
+  if (res.ok) {
+    _plan = await res.json();
+    renderPlanEditor();
+    const s = document.getElementById('planStatus');
+    s.textContent = 'Generated ✓'; s.className = 'status-msg ok';
+  } else {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = err.detail || 'Generation failed';
+    status.className = 'status-msg err';
+  }
+}
+
+async function savePlan() {
+  const status = document.getElementById('planStatus');
+  const res = await fetch('/plan', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(_plan),
+  });
+  if (res.ok) {
+    const saved = await res.json();
+    status.textContent = saved.status === 'saved_restart_required' ? 'Saved. Restart the server to apply changes.' : 'Saved';
+    status.className = 'status-msg ok';
+  } else {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = err.detail || 'Save failed';
+    status.className = 'status-msg err';
+  }
+}
+
+
+async function postJSON(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Request failed');
+  return data;
+}
+
+async function openTools() {
+  deselectPaper();
+  const papers = await fetch('/papers').then(r => r.json());
+  const indexed = papers.filter(p => p.has_index);
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="section-title">Tools</h1>
+    <p class="section-sub">Try each retrieval tool directly, independent of the paper pipeline.</p>
+
+    <section class="card" aria-labelledby="tools-search-heading">
+      <div class="card-heading" id="tools-search-heading">Search</div>
+      <div class="form-grid">
+        <div class="field-row">
+          <label class="field-label" for="toolPaper">Paper</label>
+          <select id="toolPaper" class="field-input" style="width:auto;min-width:160px">
+            ${indexed.length ? indexed.map(p => `<option value="${esc(p.stem)}">${esc(p.stem)}</option>`).join('')
+                             : '<option value="">No indexed papers</option>'}
+          </select>
+        </div>
+        <div class="field-row" style="flex:1;min-width:220px">
+          <label class="field-label" for="toolQuery">Query</label>
+          <input id="toolQuery" class="field-input" placeholder="e.g. What is the total sample size?">
+        </div>
+        <div class="field-row" style="width:80px">
+          <label class="field-label" for="toolTopN">Top N</label>
+          <input id="toolTopN" class="field-input" type="number" value="5" min="1">
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:var(--space-3)">
+        <button type="button" class="btn btn-primary" onclick="runSearch('dense')">Dense</button>
+        <button type="button" class="btn btn-secondary" onclick="runSearch('bm25')">BM25</button>
+        <button type="button" class="btn btn-secondary" onclick="runSearch('stem')">Stem</button>
+        <button type="button" class="btn btn-secondary" onclick="runSearch('splade')">SPLADE</button>
+      </div>
+      <div id="searchResults" aria-live="polite"><p class="empty">Results appear here — use "→ Rerank" / "→ NLI" on a result to test it further.</p></div>
+    </section>
+
+    <section class="card" aria-labelledby="tools-encode-heading">
+      <div class="card-heading" id="tools-encode-heading">Encode</div>
+      <div class="form-grid">
+        <div class="field-row" style="flex:1;min-width:220px">
+          <label class="field-label" for="encodeText">Text</label>
+          <input id="encodeText" class="field-input" placeholder="text to embed">
+        </div>
+        <label class="field-inline">
+          <input type="checkbox" id="encodeIsQuery" checked> query-side prefix
+        </label>
+        <button type="button" class="btn btn-primary" onclick="runEncode()">Encode</button>
+      </div>
+      <div id="encodeResult" style="font-size:var(--font-base);color:var(--color-text-secondary)" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="tools-rerank-heading">
+      <div class="card-heading" id="tools-rerank-heading">Rerank <span class="field-hint" style="text-transform:none">(cross-encoder)</span></div>
+      <div class="field-row">
+        <label class="field-label" for="rerankQuery">Query</label>
+        <input id="rerankQuery" class="field-input" placeholder="e.g. What is the total sample size?">
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="rerankDocs">Documents <span class="field-hint">(one per line)</span></label>
+        <textarea id="rerankDocs" class="field-input" rows="4" placeholder="paste chunk texts here, one per line"></textarea>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="runRerank()">Rerank</button>
+      <div id="rerankResults" style="margin-top:var(--space-3)" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="tools-nli-heading">
+      <div class="card-heading" id="tools-nli-heading">NLI <span class="field-hint" style="text-transform:none">(entailment)</span></div>
+      <div class="field-row">
+        <label class="field-label" for="nliPremise">Premise <span class="field-hint">(chunk text)</span></label>
+        <textarea id="nliPremise" class="field-input" rows="3" placeholder="paste a chunk's text here"></textarea>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="nliHyps">Hypotheses <span class="field-hint">(one declarative statement per line — not a question)</span></label>
+        <textarea id="nliHyps" class="field-input" rows="3" placeholder="This text provides information about population."></textarea>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="runNli()">Run NLI</button>
+      <div id="nliResults" style="margin-top:var(--space-3)" aria-live="polite"></div>
+    </section>`;
+}
+
+let _lastSearchResults = [];
+
+async function runSearch(method) {
+  const stem = document.getElementById('toolPaper').value;
+  const query = document.getElementById('toolQuery').value.trim();
+  const top_n = Number(document.getElementById('toolTopN').value) || 5;
+  const el = document.getElementById('searchResults');
+  if (!stem) { el.innerHTML = '<p class="status-msg err">No indexed paper selected.</p>'; return; }
+  if (!query) { el.innerHTML = '<p class="status-msg err">Enter a query.</p>'; return; }
+  el.innerHTML = '<p class="status-msg pending">Searching…</p>';
+  try {
+    const endpoint = { dense: '/tools/dense-search', bm25: '/tools/bm25-search', stem: '/tools/stem-search', splade: '/tools/splade-search' }[method];
+    _lastSearchResults = await postJSON(endpoint, { stem, query, top_n });
+    el.innerHTML = _lastSearchResults.length
+      ? _lastSearchResults.map((c, i) => toolChunkHTML(c, i)).join('')
+      : '<p class="empty">No matches.</p>';
+  } catch (e) {
+    el.innerHTML = `<p class="status-msg err">${esc(e.message)}</p>`;
+  }
+}
+
+function toolChunkHTML(c, i) {
+  return `
+    <div class="chunk">
+      <div class="chunk-meta">${esc(c.id)} · §${esc(c.section)} · ${esc(c.kind)}</div>
+      <div class="chunk-text">${esc(c.text)}</div>
+      <div class="chunk-actions">
+        <button type="button" class="btn-sm" onclick="sendToRerank(${i})">→ Rerank</button>
+        <button type="button" class="btn-sm" onclick="sendToNli(${i})">→ NLI</button>
+      </div>
+    </div>`;
+}
+
+function sendToRerank(i) {
+  const text = _lastSearchResults[i].text;
+  const docs = document.getElementById('rerankDocs');
+  docs.value += (docs.value ? '\n' : '') + text;
+  docs.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  docs.focus();
+}
+
+function sendToNli(i) {
+  const premise = document.getElementById('nliPremise');
+  premise.value = _lastSearchResults[i].text;
+  premise.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  premise.focus();
+}
+
+async function runEncode() {
+  const text = document.getElementById('encodeText').value.trim();
+  const is_query = document.getElementById('encodeIsQuery').checked;
+  const el = document.getElementById('encodeResult');
+  if (!text) { el.innerHTML = '<span class="status-msg err">Enter text to embed.</span>'; return; }
+  el.textContent = 'Encoding…';
+  try {
+    const r = await postJSON('/tools/encode', { text, is_query });
+    const preview = r.vector.slice(0, 6).map(v => v.toFixed(4)).join(', ');
+    el.innerHTML = `dim=<b>${r.dim}</b> · norm=<b>${r.norm.toFixed(4)}</b> · vector preview: [${esc(preview)}, …]`;
+  } catch (e) {
+    el.innerHTML = `<span class="status-msg err">${esc(e.message)}</span>`;
+  }
+}
+
+function scoreRowsHTML(items, labelKey, scoreKey) {
+  const max = Math.max(...items.map(i => i[scoreKey]), 1e-9);
+  return items.map(i => `
+    <div class="score-row">
+      <div class="score-val">${i[scoreKey].toFixed(4)}</div>
+      <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.max(2, i[scoreKey] / max * 100)}%"></div></div>
+      <div style="flex:2">${esc(i[labelKey])}</div>
+    </div>`).join('');
+}
+
+async function runRerank() {
+  const query = document.getElementById('rerankQuery').value.trim();
+  const documents = document.getElementById('rerankDocs').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const el = document.getElementById('rerankResults');
+  if (!query || !documents.length) { el.innerHTML = '<p class="status-msg err">Enter a query and at least one document.</p>'; return; }
+  el.innerHTML = '<p class="status-msg pending">Loading model (first call can take a few seconds)…</p>';
+  try {
+    const results = await postJSON('/tools/rerank', { query, documents });
+    el.innerHTML = scoreRowsHTML(results, 'document', 'score');
+  } catch (e) {
+    el.innerHTML = `<p class="status-msg err">${esc(e.message)}</p>`;
+  }
+}
+
+async function runNli() {
+  const premise = document.getElementById('nliPremise').value.trim();
+  const hypotheses = document.getElementById('nliHyps').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const el = document.getElementById('nliResults');
+  if (!premise || !hypotheses.length) { el.innerHTML = '<p class="status-msg err">Enter a premise and at least one hypothesis.</p>'; return; }
+  el.innerHTML = '<p class="status-msg pending">Loading model (first call can take a few seconds)…</p>';
+  try {
+    const results = await postJSON('/tools/nli', { premise, hypotheses });
+    el.innerHTML = scoreRowsHTML(results, 'hypothesis', 'entailment');
+  } catch (e) {
+    el.innerHTML = `<p class="status-msg err">${esc(e.message)}</p>`;
+  }
+}
+
+
+async function openSettings() {
+  const cfg = await fetch('/config').then(r => r.json());
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="section-title">Settings</h1>
+    <p class="section-sub">Model, prompt, and deployment changes require a server restart.</p>
+    <div class="card" style="max-width:640px">
+      <p class="field-hint">To switch NLI models, change nli.model below and leave nli.revision null. Save and restart the API.</p>
+      <p class="field-hint">For local LLM screening set screening.backend to "llm". The all_criteria mode returns one paper-level yes/no decision; per_criterion returns individual findings and applies the configured evidence policy. NLI thresholds do not apply to either LLM mode.</p>
+      <label class="field-label" for="cfgEditor" style="margin-bottom:var(--space-2);display:block">Pipeline config (JSON)</label>
+      <textarea id="cfgEditor" class="field-input mono" style="height:380px" spellcheck="false">${esc(JSON.stringify(cfg, null, 2))}</textarea>
+      <div class="toolbar" style="margin-top:var(--space-3);margin-bottom:0">
+        <button type="button" class="btn btn-primary" onclick="saveSettings()">Save</button>
+        <span id="cfgStatus" class="status-msg" role="status" aria-live="polite"></span>
+      </div>
+    </div>`;
+  deselectPaper();
+}
+
+async function saveSettings() {
+  const raw = document.getElementById('cfgEditor').value;
+  const status = document.getElementById('cfgStatus');
+  let cfg;
+  try {
+    cfg = JSON.parse(raw);
+  } catch {
+    status.textContent = 'Invalid JSON';
+    status.className = 'status-msg err';
+    return;
+  }
+  const res = await fetch('/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(cfg) });
+  if (res.ok) {
+    const saved = await res.json();
+    status.textContent = saved.status === 'saved_restart_required' ? 'Saved. Restart the server to apply changes.' : 'Saved';
+    status.className = 'status-msg ok';
+  } else {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = typeof err.detail === 'string' ? err.detail : 'Validation failed — check the console for details';
+    status.className = 'status-msg err';
+    if (err.detail) console.error('Config validation error:', err.detail);
+  }
+}
+
+
+async function openExport() {
+  deselectPaper();
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="section-title">Export</h1>
+    <p class="section-sub">Extracted values across all processed papers.</p>
+    <div class="toolbar">
+      <label class="field-inline" for="exportSource">Source
+        <select id="exportSource" class="field-input" style="width:auto" onchange="loadExport()">
+          <option value="rag">RAG</option>
+          <option value="full">Full paper</option>
+        </select>
+      </label>
+      <a class="btn btn-primary" id="exportDownload" href="/export.csv" download>Download CSV</a>
+      <span id="exportStatus" class="status-msg pending" role="status" aria-live="polite">Loading…</span>
+    </div>
+    <div id="exportTable"></div>`;
+  await loadExport();
+}
+
+async function loadExport() {
+  const source = document.getElementById('exportSource').value;
+  document.getElementById('exportDownload').href = `/export.csv?source=${source}`;
+  const status = document.getElementById('exportStatus');
+  const tableEl = document.getElementById('exportTable');
+  status.textContent = 'Loading…'; status.className = 'status-msg pending';
+  try {
+    const data = await fetch(`/export?source=${source}`).then(r => r.json());
+    status.textContent = `${data.papers.length} paper(s) · ${data.fields.length} field(s)`;
+    status.className = 'status-msg';
+    tableEl.innerHTML = exportTableHTML(data);
+  } catch (e) {
+    status.textContent = 'Failed to load';
+    status.className = 'status-msg err';
+  }
+}
+
+function exportTableHTML(data) {
+  if (!data.papers.length) return '<p class="empty">No papers processed yet.</p>';
+  return `<div class="table-wrap"><table>
+    <caption class="visually-hidden">Extracted field values per paper</caption>
+    <thead><tr><th scope="col">Paper</th>${data.fields.map(f => `<th scope="col">${esc(f)}</th>`).join('')}</tr></thead>
+    <tbody>${data.papers.map(p => `
+      <tr>
+        <th scope="row">${esc(p.stem)}</th>
+        ${data.fields.map(f => exportCellHTML(p.fields[f])).join('')}
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function exportCellHTML(fr) {
+  if (!fr) return `<td><span style="color:var(--color-text-muted)">—</span></td>`;
+  const cc = { high: 'conf-high', medium: 'conf-medium', low: 'conf-low' }[fr.confidence] || '';
+  const conf = fr.confidence ? ` <span class="conf ${cc}">${esc(fr.confidence)}</span>` : '';
+  const status = fr.status ? ` <span class="tag">${esc(fr.status)}</span>` : '';
+  const value = fr.value ? esc(fr.value) : '<span style="color:var(--color-text-muted)">—</span>';
+  return `<td>${value}${status}${conf}</td>`;
+}
+
+
+let _screeningCriteria = [];
+let _screeningThresholds = { confidence_threshold: 0.8 };
+let _screeningPrompts = { all_criteria: '', per_criterion: '', judge: '' };
+let _screeningBatches = [];
+let _screeningSelectedBatch = null;
+let _screeningCurrentResults = null;
+let _screeningCurrentAgreement = null;
+let _screeningCurrentCalibration = null;
+let _screeningSort = 'review_order';
+let _screeningFilter = 'all';
+let _screeningReviewMode = 'operational';
+
+function screeningSetupSummaryHTML(paperCount = null, screening = _screeningThresholds) {
+  const detail = screeningSetupDetails(screening, paperCount, _screeningCriteria.length);
+  const calls = paperCount == null ? '' : `<p><strong>Estimated model calls:</strong> ${detail.minimumCalls === detail.maximumCalls ? detail.minimumCalls : `${detail.minimumCalls}-${detail.maximumCalls}`}</p>`;
+  return `<div class="field-hint">
+    <p><strong>Primary:</strong> ${esc(detail.primary)}</p>
+    <p><strong>Recorded output:</strong> ${esc(detail.outputs)}</p>
+    <p><strong>Second reviewer:</strong> ${esc(detail.secondReviewer)} &middot; <strong>Judge:</strong> ${esc(detail.judge)}</p>
+    ${calls}
+    ${detail.warnings.map(item => `<p class="status-msg err">Warning: ${esc(item)}</p>`).join('')}
+  </div>`;
+}
+
+function screeningSetupHTML() {
+  const screening = _screeningThresholds;
+  const llm = screening.llm;
+  const panel = screening.panel;
+  return `
+    <div class="card">
+      <div class="card-heading">Screening setup</div>
+      <div class="toolbar">
+        <button type="button" class="btn-sm" onclick="applyScreeningPreset('nli')">Fast NLI</button>
+        <button type="button" class="btn-sm" onclick="applyScreeningPreset('explainable')">Explainable LLM</button>
+        <button type="button" class="btn-sm" onclick="applyScreeningPreset('independent')">Independent human review</button>
+      </div>
+      <div class="form-grid">
+        <div class="field-row">
+          <label class="field-label" for="setupBackend">Primary screener</label>
+          <select class="field-input" id="setupBackend" onchange="toggleScreeningSetupFields()">
+            <option value="nli" ${screening.backend === 'nli' ? 'selected' : ''}>NLI</option>
+            <option value="llm" ${screening.backend === 'llm' ? 'selected' : ''}>LLM</option>
+          </select>
+        </div>
+        <div class="field-row screening-llm-setting">
+          <label class="field-label" for="setupExecutionMode">LLM evaluation mode</label>
+          <select class="field-input" id="setupExecutionMode" onchange="toggleScreeningSetupFields()">
+            <option value="per_criterion" ${llm.execution_mode === 'per_criterion' ? 'selected' : ''}>One call per criterion</option>
+            <option value="all_criteria" ${llm.execution_mode === 'all_criteria' ? 'selected' : ''}>One overall call per paper</option>
+          </select>
+        </div>
+      </div>
+      <div class="screening-llm-setting" style="margin:var(--space-3) 0">
+        <label class="field-inline"><input id="setupReason" type="checkbox" ${llm.include_reason ? 'checked' : ''} onchange="toggleScreeningSetupFields()"> Return reason</label>
+        <label class="field-inline"><input id="setupEvidence" type="checkbox" ${llm.extract_evidence ? 'checked' : ''} onchange="toggleScreeningSetupFields()"> Return verified quote</label>
+        <label class="field-inline screening-per-criterion-setting"><input id="setupUncertainty" type="checkbox" ${llm.allow_uncertainty ? 'checked' : ''} onchange="toggleScreeningSetupFields()"> Allow uncertainty</label>
+        <label class="field-inline"><input id="setupConfidence" type="checkbox" ${llm.include_confidence_score ? 'checked' : ''} onchange="toggleScreeningSetupFields()"> Return self-reported confidence</label>
+      </div>
+      <div class="form-grid screening-llm-setting">
+        <div class="field-row">
+          <label class="field-label" for="setupConcurrentRequests">Parallel API requests</label>
+          <input class="field-input" id="setupConcurrentRequests" type="number" min="1" max="16" step="1" value="${llm.max_concurrent_requests ?? 1}">
+          <span class="field-hint">Maximum simultaneous requests within one screening or panel batch. Use 1 for constrained local models.</span>
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="setupMaxOutputTokens">Initial output-token budget</label>
+          <input class="field-input" id="setupMaxOutputTokens" type="number" min="16" step="1" value="${llm.max_output_tokens}">
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="setupOutputRetryMultiplier">Truncation retry multiplier</label>
+          <input class="field-input" id="setupOutputRetryMultiplier" type="number" min="1.01" max="8" step="0.25" value="${llm.output_token_retry_multiplier ?? 2}">
+        </div>
+      </div>
+      <details class="screening-llm-setting" style="margin:var(--space-3) 0">
+        <summary class="field-label">System prompts</summary>
+        <p class="field-hint">The active primary prompt depends on the evaluation mode. The overall prompt is also the default for an LLM second reviewer. Prompt changes apply to the next run and invalidate incompatible checkpoints; no server restart is needed.</p>
+        <div class="field-row">
+          <label class="field-label" for="setupAllCriteriaPrompt">Overall decision (all criteria)</label>
+          <textarea class="field-input mono" id="setupAllCriteriaPrompt" rows="8" spellcheck="false">${esc(_screeningPrompts.all_criteria)}</textarea>
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="setupPerCriterionPrompt">Per-criterion assessment</label>
+          <textarea class="field-input mono" id="setupPerCriterionPrompt" rows="8" spellcheck="false">${esc(_screeningPrompts.per_criterion)}</textarea>
+        </div>
+        <div class="field-row screening-panel-setting">
+          <label class="field-label" for="setupJudgePrompt">Adjudication judge</label>
+          <textarea class="field-input mono" id="setupJudgePrompt" rows="8" spellcheck="false">${esc(_screeningPrompts.judge)}</textarea>
+        </div>
+        <div class="toolbar" style="margin-top:var(--space-3);margin-bottom:0">
+          <button type="button" class="btn btn-secondary" onclick="saveScreeningPrompts()">Save system prompts</button>
+          <span id="screeningPromptStatus" class="status-msg" role="status" aria-live="polite"></span>
+        </div>
+      </details>
+      <label class="field-label screening-panel-setting"><input id="setupPanelEnabled" type="checkbox" ${panel.enabled ? 'checked' : ''} onchange="toggleScreeningSetupFields()"> Enable independent review panel</label>
+      <div id="screeningPanelSettings" class="form-grid" style="margin-top:var(--space-3)">
+        <div class="field-row">
+          <label class="field-label" for="setupSecondKind">Second reviewer</label>
+          <select class="field-input" id="setupSecondKind" onchange="toggleScreeningSetupFields()">
+            <option value="human" ${panel.second_reviewer.kind === 'human' ? 'selected' : ''}>Human</option>
+            <option value="llm" ${panel.second_reviewer.kind === 'llm' ? 'selected' : ''}>LLM</option>
+          </select>
+          <input class="field-input panel-second-model" id="setupSecondModel" value="${esc(panel.second_reviewer.llm?.model || llm.model)}" placeholder="Second model">
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="setupJudgeKind">Judge on disagreement</label>
+          <select class="field-input" id="setupJudgeKind" onchange="toggleScreeningSetupFields()">
+            <option value="human" ${panel.judge.kind === 'human' ? 'selected' : ''}>Human</option>
+            <option value="llm" ${panel.judge.kind === 'llm' ? 'selected' : ''}>LLM</option>
+          </select>
+          <input class="field-input panel-judge-model" id="setupJudgeModel" value="${esc(panel.judge.llm?.model || llm.model)}" placeholder="Judge model">
+        </div>
+        <label class="field-inline"><input id="setupJudgeReason" type="checkbox" ${panel.require_judge_reason !== false ? 'checked' : ''}> Require the judge to explain the final decision</label>
+      </div>
+      <div id="screeningSetupSummary">${screeningSetupSummaryHTML()}</div>
+      <div class="toolbar" style="margin:var(--space-3) 0 0">
+        <button type="button" class="btn btn-primary" onclick="saveScreeningSetup()">Save screening setup</button>
+        <button type="button" class="btn btn-secondary" onclick="openSettings()">Advanced settings</button>
+        <span id="screeningSetupStatus" class="status-msg" role="status" aria-live="polite"></span>
+      </div>
+      <p class="field-hint">Provider URLs, prompts, reasoning effort, retry limits, and other deployment options remain available in Advanced Settings.</p>
+    </div>`;
+}
+
+function screeningPanelActor(kind, current, primary, model) {
+  if (kind === 'human') return {kind: 'human', llm: null};
+  const llm = {...(current?.llm || primary)};
+  llm.model = model.trim();
+  llm.execution_mode = 'all_criteria';
+  llm.allow_uncertainty = false;
+  return {kind: 'llm', llm};
+}
+
+function screeningSetupDraft() {
+  const screening = structuredClone(_screeningThresholds);
+  screening.backend = document.getElementById('setupBackend').value;
+  screening.llm.execution_mode = document.getElementById('setupExecutionMode').value;
+  screening.llm.include_reason = document.getElementById('setupReason').checked;
+  screening.llm.extract_evidence = document.getElementById('setupEvidence').checked;
+  screening.llm.allow_uncertainty = screening.llm.execution_mode === 'per_criterion' && document.getElementById('setupUncertainty').checked;
+  screening.llm.include_confidence_score = document.getElementById('setupConfidence').checked;
+  screening.llm.max_concurrent_requests = Number(document.getElementById('setupConcurrentRequests').value);
+  screening.llm.max_output_tokens = Number(document.getElementById('setupMaxOutputTokens').value);
+  screening.llm.output_token_retry_multiplier = Number(document.getElementById('setupOutputRetryMultiplier').value);
+  screening.panel.enabled = screening.backend === 'llm' && document.getElementById('setupPanelEnabled').checked;
+  screening.panel.require_judge_reason = document.getElementById('setupJudgeReason').checked;
+  screening.panel.second_reviewer = screeningPanelActor(
+    document.getElementById('setupSecondKind').value,
+    screening.panel.second_reviewer,
+    screening.llm,
+    document.getElementById('setupSecondModel').value,
+  );
+  screening.panel.judge = screeningPanelActor(
+    document.getElementById('setupJudgeKind').value,
+    screening.panel.judge,
+    screening.llm,
+    document.getElementById('setupJudgeModel').value,
+  );
+  return screening;
+}
+
+function toggleScreeningSetupFields() {
+  const llm = document.getElementById('setupBackend')?.value === 'llm';
+  const perCriterion = document.getElementById('setupExecutionMode')?.value === 'per_criterion';
+  const panel = document.getElementById('setupPanelEnabled')?.checked;
+  document.querySelectorAll('.screening-panel-setting').forEach(element => element.style.display = llm ? '' : 'none');
+  if (!llm && document.getElementById('setupPanelEnabled')) document.getElementById('setupPanelEnabled').checked = false;
+  document.querySelectorAll('.screening-llm-setting').forEach(element => element.style.display = llm ? '' : 'none');
+  document.querySelectorAll('.screening-per-criterion-setting').forEach(element => element.style.display = perCriterion ? '' : 'none');
+  const panelSettings = document.getElementById('screeningPanelSettings');
+  if (panelSettings) panelSettings.style.display = llm && panel ? '' : 'none';
+  document.querySelectorAll('.panel-second-model').forEach(element => element.style.display = panel && document.getElementById('setupSecondKind').value === 'llm' ? '' : 'none');
+  document.querySelectorAll('.panel-judge-model').forEach(element => element.style.display = panel && document.getElementById('setupJudgeKind').value === 'llm' ? '' : 'none');
+  const summary = document.getElementById('screeningSetupSummary');
+  if (summary) summary.innerHTML = screeningSetupSummaryHTML(null, screeningSetupDraft());
+}
+
+function applyScreeningPreset(name) {
+  if (name === 'nli') {
+    document.getElementById('setupBackend').value = 'nli';
+    document.getElementById('setupPanelEnabled').checked = false;
+  } else if (name === 'explainable') {
+    document.getElementById('setupBackend').value = 'llm';
+    document.getElementById('setupExecutionMode').value = 'per_criterion';
+    document.getElementById('setupReason').checked = true;
+    document.getElementById('setupEvidence').checked = true;
+    document.getElementById('setupUncertainty').checked = true;
+    document.getElementById('setupConfidence').checked = false;
+    document.getElementById('setupPanelEnabled').checked = false;
+  } else if (name === 'independent') {
+    document.getElementById('setupBackend').value = 'llm';
+    document.getElementById('setupPanelEnabled').checked = true;
+    document.getElementById('setupSecondKind').value = 'human';
+    document.getElementById('setupJudgeKind').value = 'human';
+  }
+  toggleScreeningSetupFields();
+}
+
+async function saveScreeningSetup() {
+  const status = document.getElementById('screeningSetupStatus');
+  const screening = screeningSetupDraft();
+  if (!Number.isInteger(screening.llm.max_concurrent_requests) || screening.llm.max_concurrent_requests < 1 || screening.llm.max_concurrent_requests > 16) {
+    status.textContent = 'Parallel API requests must be an integer from 1 to 16.';
+    status.className = 'status-msg err';
+    return;
+  }
+  if (!Number.isInteger(screening.llm.max_output_tokens) || screening.llm.max_output_tokens < 16) {
+    status.textContent = 'The initial output-token budget must be an integer of at least 16.';
+    status.className = 'status-msg err';
+    return;
+  }
+  if (!(screening.llm.output_token_retry_multiplier > 1 && screening.llm.output_token_retry_multiplier <= 8)) {
+    status.textContent = 'The truncation retry multiplier must be greater than 1 and at most 8.';
+    status.className = 'status-msg err';
+    return;
+  }
+  for (const actor of [screening.panel.second_reviewer, screening.panel.judge]) {
+    if (screening.panel.enabled && actor.kind === 'llm' && !actor.llm.model.trim()) {
+      status.textContent = 'Every LLM review role needs a model name.';
+      status.className = 'status-msg err';
+      return;
+    }
+  }
+  const cfg = await fetch('/config').then(response => response.json());
+  cfg.screening = screening;
+  const response = await fetch('/config', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(cfg),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    status.textContent = typeof body.detail === 'string' ? body.detail : 'Validation failed; open Advanced Settings for details.';
+    status.className = 'status-msg err';
+    return;
+  }
+  _screeningThresholds = screening;
+  status.textContent = body.status === 'saved_restart_required' ? 'Saved. Restart the server before screening.' : 'Saved.';
+  status.className = 'status-msg ok';
+  toggleScreeningSetupFields();
+}
+
+async function saveScreeningPrompts() {
+  const status = document.getElementById('screeningPromptStatus');
+  const prompts = {
+    all_criteria: document.getElementById('setupAllCriteriaPrompt').value.trim(),
+    per_criterion: document.getElementById('setupPerCriterionPrompt').value.trim(),
+    judge: document.getElementById('setupJudgePrompt').value.trim(),
+  };
+  if (Object.values(prompts).some(value => !value)) {
+    status.textContent = 'System prompts cannot be empty.';
+    status.className = 'status-msg err';
+    return;
+  }
+  const response = await fetch('/screening/prompts', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(prompts),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    status.textContent = typeof body.detail === 'string' ? body.detail : 'Could not save system prompts.';
+    status.className = 'status-msg err';
+    return;
+  }
+  _screeningPrompts = prompts;
+  status.textContent = 'Saved. The prompts will be used on the next screening run.';
+  status.className = 'status-msg ok';
+}
+
+async function openScreening() {
+  deselectPaper();
+  const [criteriaRes, cfg, batches, prompts] = await Promise.all([
+    fetch('/screening/criteria').then(r => r.json()),
+    fetch('/config').then(r => r.json()),
+    fetch('/screening/batches').then(r => r.json()),
+    fetch('/screening/prompts').then(r => r.json()),
+  ]);
+  _screeningCriteria = criteriaRes.criteria.map(c => ({ ...c }));
+  _screeningThresholds = { ...cfg.screening };
+  _screeningBatches = batches;
+  _screeningPrompts = prompts;
+  renderScreening();
+}
+
+function renderScreening() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="section-title">Title &amp; Abstract Screening</h1>
+    <p class="section-sub">Screen candidate papers against inclusion/exclusion criteria before full-text extraction.</p>
+
+    ${screeningSetupHTML()}
+
+    <div class="card">
+      <div class="card-heading">Criteria</div>
+      <p class="field-hint">${_screeningThresholds.backend === 'llm' ? 'LLM screening: all_criteria returns a paper decision; per_criterion evaluates each criterion and aggregates in code.' : 'NLI screening: each criterion is evaluated separately.'}</p>
+      <div id="screeningCriteriaContainer">${_screeningCriteria.map((c, i) => screeningCriterionHTML(c, i)).join('') || '<p class="empty">No criteria yet — add one below.</p>'}</div>
+      <button type="button" class="btn-add" onclick="addScreeningCriterion()">+ Add Criterion</button>
+      <div class="toolbar" style="margin-top:var(--space-4);margin-bottom:0">
+        <button type="button" class="btn btn-primary" onclick="saveScreeningCriteria()">Save Criteria</button>
+        <span id="screeningCriteriaStatus" class="status-msg" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:520px;${_screeningThresholds.backend === 'llm' ? 'display:none' : ''}">
+      <div class="card-heading">Default Threshold</div>
+      <div class="form-grid">
+        <div class="field-row">
+          <label class="field-label" for="confidenceThreshold">Default for new criteria</label>
+          <input class="field-input" id="confidenceThreshold" type="number" min="0.5" max="1" step="0.05" style="width:100px" value="${_screeningThresholds.confidence_threshold}">
+        </div>
+      </div>
+      <p class="field-hint" style="display:block;margin-bottom:var(--space-3)">
+        Every criterion has its own threshold in the card above. This value is the initial threshold for newly added criteria. The largest entailment, contradiction, or neutral probability is shown as confidence. Entailment and contradiction at or above the threshold are decisive. Confident neutral also rejects an inclusion criterion when explicit abstract evidence is required.
+        Criteria that cannot reasonably be judged from a title and abstract should be handled during full-text screening instead.
+      </p>
+      <div class="toolbar" style="margin-bottom:0">
+        <button type="button" class="btn btn-secondary" onclick="saveScreeningThresholds()">Save Default</button>
+        <span id="screeningThresholdStatus" class="status-msg" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-heading">Batches</div>
+      <label class="upload-area" id="screeningUploadArea" for="screeningFileInput" style="margin-bottom:var(--space-4)">
+        <input class="upload-input" type="file" id="screeningFileInput" accept=".ris,.csv,.xlsx" onchange="handleScreeningFileSelect(this)" aria-label="Upload RIS citations or CSV/XLSX with title and abstract columns">
+        <svg class="upload-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/>
+        </svg>
+        <div>Upload RIS, CSV, or Excel</div>
+        <div class="upload-hint">CSV/XLSX: 'title' and 'abstract' columns · CSV/RIS: UTF-8 · click or drag &amp; drop</div>
+      </label>
+      <p><a href="/screening/template.csv" download>Download CSV template</a> · Optional columns: authors, year, doi, journal, url, source_id. Both the title and abstract are screened.</p>
+      <span id="screeningUploadStatus" class="status-msg" role="status" aria-live="polite"></span>
+      <div id="screeningBatchList">${screeningBatchListHTML()}</div>
+    </div>
+
+    <div id="screeningResultsSection"></div>`;
+
+  const sua = document.getElementById('screeningUploadArea');
+  sua.addEventListener('dragover',  e => { e.preventDefault(); sua.classList.add('over'); });
+  sua.addEventListener('dragleave', () => sua.classList.remove('over'));
+  sua.addEventListener('drop', async e => {
+    e.preventDefault(); sua.classList.remove('over');
+    const file = e.dataTransfer.files[0];
+    if (file) await doScreeningUpload(file);
+  });
+
+  toggleScreeningSetupFields();
+
+  if (_screeningSelectedBatch) loadScreeningResults(_screeningSelectedBatch);
+}
+
+function screeningCriterionHTML(c, i) {
+  return `
+    <div class="card" id="screening-criterion-${i}" style="background:var(--color-bg)">
+      <button type="button" class="btn-icon" style="position:absolute;top:14px;right:16px" onclick="deleteScreeningCriterion(${i})" aria-label="Remove criterion ${i + 1}">×</button>
+      <div class="form-grid">
+        <div class="field-row" style="flex:1;min-width:200px">
+          <label class="field-label" for="screening-${i}-label">Label <span class="required" aria-hidden="true">*</span></label>
+          <input class="field-input" id="screening-${i}-label" type="text" placeholder="e.g. Gamification intervention" required
+            value="${esc(c.label || '')}" oninput="updateScreeningCriterion(${i},'label',this.value)">
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="screening-${i}-type">Type</label>
+          <select class="field-input" id="screening-${i}-type" onchange="updateScreeningCriterion(${i},'type',this.value)">
+            <option value="include" ${c.type === 'include' ? 'selected' : ''}>Include</option>
+            <option value="exclude" ${c.type === 'exclude' ? 'selected' : ''}>Exclude</option>
+          </select>
+        </div>
+        <div class="field-row" style="${_screeningThresholds.backend === 'llm' ? 'display:none' : ''}">
+          <label class="field-label" for="screening-${i}-threshold">Threshold</label>
+          <input class="field-input" id="screening-${i}-threshold" type="number" min="0.5" max="1" step="any" style="width:100px"
+            value="${screeningNumber(c.confidence_threshold, _screeningThresholds.confidence_threshold)}"
+            oninput="updateScreeningCriterion(${i},'confidence_threshold',parseFloat(this.value))">
+        </div>
+      </div>
+      <label class="field-label">
+        <input type="checkbox" ${c.explicit_evidence_required ? 'checked' : ''}
+          onchange="updateScreeningCriterion(${i},'explicit_evidence_required',this.checked)">
+        Explicit abstract evidence required (inclusion criteria only): ${_screeningThresholds.backend === 'llm' ? 'missing evidence leads to exclusion.' : 'confident neutral rejects the paper.'}
+      </label>
+      <div class="field-row">
+        <label class="field-label" for="screening-${i}-statement">Statement <span class="required" aria-hidden="true">*</span> <span class="field-hint">(one short, plain claim — avoid "X rather than Y" comparisons, they confuse the model)</span></label>
+        <textarea class="field-input" id="screening-${i}-statement" rows="2" placeholder="e.g. This is a literature review.  (not: &quot;this is a review rather than a primary study&quot;)" required
+          oninput="updateScreeningCriterion(${i},'statement',this.value)">${esc(c.statement || '')}</textarea>
+      </div>
+    </div>`;
+}
+
+function updateScreeningCriterion(i, key, value) { _screeningCriteria[i][key] = value; }
+
+function addScreeningCriterion() {
+  _screeningCriteria.push({ label: '', statement: '', type: 'include', confidence_threshold: _screeningThresholds.confidence_threshold });
+  renderScreening();
+  document.getElementById(`screening-${_screeningCriteria.length - 1}-label`)?.focus();
+}
+
+function deleteScreeningCriterion(i) {
+  _screeningCriteria.splice(i, 1);
+  renderScreening();
+}
+
+async function saveScreeningCriteria() {
+  const invalid = _screeningCriteria.filter(c =>
+    !c.label.trim() || !c.statement.trim() ||
+    !Number.isFinite(Number(c.confidence_threshold)) || c.confidence_threshold < 0.5 || c.confidence_threshold > 1
+  );
+  const status = document.getElementById('screeningCriteriaStatus');
+  if (invalid.length) { status.textContent = 'Every criterion needs a label, statement, and threshold between 0.5 and 1.0.'; status.className = 'status-msg err'; return; }
+
+  const clean = _screeningCriteria.map(c => ({
+    label: c.label.trim(), statement: c.statement.trim(), type: c.type,
+    confidence_threshold: Number(c.confidence_threshold),
+    explicit_evidence_required: c.type === 'include' && Boolean(c.explicit_evidence_required),
+  }));
+  const res = await fetch('/screening/criteria', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ criteria: clean }),
+  });
+  if (res.ok) {
+    _screeningCriteria = clean;
+    status.textContent = 'Saved ✓'; status.className = 'status-msg ok';
+  } else {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = err.detail || 'Save failed'; status.className = 'status-msg err';
+  }
+}
+
+async function saveScreeningThresholds() {
+  const status = document.getElementById('screeningThresholdStatus');
+  const cfg = await fetch('/config').then(r => r.json());
+  cfg.screening.confidence_threshold = parseFloat(document.getElementById('confidenceThreshold').value);
+  const res = await fetch('/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) });
+  if (res.ok) {
+    _screeningThresholds = cfg.screening;
+    status.textContent = 'Saved ✓'; status.className = 'status-msg ok';
+  } else {
+    const err = await res.json().catch(() => ({}));
+    status.textContent = err.detail || 'Save failed'; status.className = 'status-msg err';
+  }
+}
+
+async function handleScreeningFileSelect(input) {
+  const file = input.files[0];
+  if (file) await doScreeningUpload(file);
+  input.value = '';
+}
+
+async function doScreeningUpload(file) {
+  const status = document.getElementById('screeningUploadStatus');
+  status.textContent = 'Uploading…'; status.className = 'status-msg pending';
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch('/screening/upload', { method: 'POST', body: fd });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    status.textContent = data.detail || 'Upload failed'; status.className = 'status-msg err';
+    return;
+  }
+  status.textContent = `Uploaded ${data.paper_count} paper(s) ✓`; status.className = 'status-msg ok';
+  _screeningBatches = await fetch('/screening/batches').then(r => r.json());
+  _screeningSelectedBatch = data.batch_id;
+  document.getElementById('screeningBatchList').innerHTML = screeningBatchListHTML();
+  document.getElementById('screeningResultsSection').innerHTML = '';
+}
+
+function screeningBatchListHTML() {
+  if (!_screeningBatches.length) return '<p class="empty">No citation files uploaded yet.</p>';
+  return `<div class="table-wrap"><table>
+    <caption class="visually-hidden">Uploaded screening batches</caption>
+    <thead><tr><th scope="col">File</th><th scope="col">Papers</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+    <tbody>${_screeningBatches.map(b => `
+      <tr>
+        <th scope="row">${esc(b.filename)}</th>
+        <td>${b.paper_count}</td>
+        <td>${b.has_results ? '<span class="decision decision-include">Screened</span>' : '<span class="status-msg pending">Not run</span>'}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn-sm" onclick="runScreeningBatch('${b.batch_id}')">Run</button>
+          <button type="button" class="btn-sm" onclick="loadScreeningResults('${b.batch_id}')">View</button>
+          ${b.has_results ? `<a class="btn-sm" href="/screening/${b.batch_id}/results.xlsx" download>Download</a>` : ''}
+          <button type="button" class="btn-sm" onclick="deleteScreeningBatch('${b.batch_id}')">Delete</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+async function runScreeningBatch(batchId) {
+  const status = document.getElementById('screeningUploadStatus');
+  if (!_screeningCriteria.length) { alert('Define at least one screening criterion first.'); return; }
+  const batch = _screeningBatches.find(item => item.batch_id === batchId);
+  const detail = screeningSetupDetails(_screeningThresholds, batch?.paper_count || 0, _screeningCriteria.length);
+  const calls = detail.minimumCalls === detail.maximumCalls ? detail.minimumCalls : `${detail.minimumCalls}-${detail.maximumCalls}`;
+  const warningText = detail.warnings.length ? `\n\nWarnings:\n- ${detail.warnings.join('\n- ')}` : '';
+  const approved = confirm(
+    `Run screening with this setup?\n\nPrimary: ${detail.primary}\nOutputs: ${detail.outputs}\nSecond reviewer: ${detail.secondReviewer}\nJudge: ${detail.judge}\nEstimated model calls: ${calls}${warningText}`
+  );
+  if (!approved) return;
+  status.textContent = 'Screening…'; status.className = 'status-msg pending';
+  const res = await fetch(`/screening/${batchId}/run`, { method: 'POST' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    status.textContent = data.detail || 'Failed to start screening'; status.className = 'status-msg err';
+    return;
+  }
+  const t = setInterval(async () => {
+    const job = await fetch(`/jobs/${data.job_id}`).then(r => r.json());
+    if (job.status === 'done' || job.status === 'error') {
+      clearInterval(t);
+      if (job.status === 'error') {
+        status.textContent = `Error: ${job.error}`; status.className = 'status-msg err';
+        return;
+      }
+      status.textContent = 'Screening complete ✓'; status.className = 'status-msg ok';
+      _screeningBatches = await fetch('/screening/batches').then(r => r.json());
+      document.getElementById('screeningBatchList').innerHTML = screeningBatchListHTML();
+      loadScreeningResults(batchId);
+    }
+  }, 1500);
+}
+
+async function deleteScreeningBatch(batchId) {
+  if (!confirm('Delete this batch and its results?')) return;
+  await fetch(`/screening/${batchId}`, { method: 'DELETE' });
+  _screeningBatches = await fetch('/screening/batches').then(r => r.json());
+  document.getElementById('screeningBatchList').innerHTML = screeningBatchListHTML();
+  if (_screeningSelectedBatch === batchId) {
+    _screeningSelectedBatch = null;
+    document.getElementById('screeningResultsSection').innerHTML = '';
+  }
+}
+
+function screeningViewState(section) {
+  return {
+    openRows: Array.from(section.querySelectorAll('.acc-header[aria-expanded="true"][data-paper-row]')).map(
+      header => header.dataset.paperRow
+    ),
+    scrollY: window.scrollY,
+  };
+}
+
+function restoreScreeningViewState(section, state) {
+  if (!state) return;
+  state.openRows.forEach(row => {
+    const header = section.querySelector(`.acc-header[data-paper-row="${CSS.escape(row)}"]`);
+    if (!header) return;
+    const body = document.getElementById(header.getAttribute('aria-controls'));
+    header.setAttribute('aria-expanded', 'true');
+    body?.classList.add('open');
+  });
+  window.scrollTo(0, state.scrollY);
+}
+
+async function loadScreeningResults(batchId, preserveView = false) {
+  _screeningSelectedBatch = batchId;
+  const section = document.getElementById('screeningResultsSection');
+  const viewState = preserveView ? screeningViewState(section) : null;
+  if (!preserveView) section.innerHTML = '<h2 class="section-title" style="font-size:var(--font-lg);margin-top:var(--space-6)">Results</h2><p class="empty">Loading…</p>';
+  const res = await fetch(`/screening/${batchId}/results`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    section.innerHTML = `<h2 class="section-title" style="font-size:var(--font-lg);margin-top:var(--space-6)">Results</h2><p class="empty">${esc(err.detail || 'No results yet — click Run.')}</p>`;
+    return;
+  }
+  const data = await res.json();
+  const [agreement, calibration] = await Promise.all([
+    fetch(`/screening/${batchId}/agreement`).then(r => r.json()),
+    data.papers.some(p => p.backend === 'llm') ? Promise.resolve(null) : fetch(`/screening/${batchId}/calibration`).then(r => r.json()),
+  ]);
+  _screeningCurrentResults = data;
+  _screeningCurrentAgreement = agreement;
+  _screeningCurrentCalibration = calibration;
+  section.innerHTML = screeningResultsHTML(data, agreement, calibration);
+  restoreScreeningViewState(section, viewState);
+}
+
+function decisionBadgeHTML(label, decision) {
+  const cls = { Include: 'decision-include', 'Likely include': 'decision-include', Exclude: 'decision-exclude', Maybe: 'decision-maybe', 'Missing abstract': 'decision-missing' }[decision] || 'decision-missing';
+  return `<span class="decision ${cls}">${esc(label)}</span>`;
+}
+
+function screeningNumber(value, fallback = null) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function sortedScreeningPapers(papers) {
+  const rows = papers.filter(p => {
+    if (_screeningFilter === 'all') return true;
+    if (_screeningFilter === 'attention') return p.screening_status !== 'screened' || (p.consensus && !p.consensus.decision);
+    if (_screeningFilter === 'unreviewed' && p.consensus) return (p.consensus.status === 'awaiting_second_reviewer' && p.consensus.roles?.second_reviewer === 'human') || (p.consensus.status === 'awaiting_judge' && p.consensus.roles?.judge === 'human');
+    if (_screeningFilter === 'reviewed' && p.consensus) return p.consensus.second_reviewer?.kind === 'human' || p.consensus.judge?.kind === 'human';
+    if (_screeningFilter === 'unreviewed') return (p.screening_status || 'screened') === 'screened' && (p.criteria.length ? p.criteria.some(c => !c.human_decision) : !p.human_decision);
+    if (_screeningFilter === 'reviewed') return (p.criteria.length ? p.criteria.every(c => Boolean(c.human_decision)) : Boolean(p.human_decision));
+    if (_screeningFilter === 'missing') return (p.screening_status || 'screened') === 'missing_abstract';
+    if (_screeningFilter === 'overflow') return ['input_too_long', 'output_too_long'].includes(p.screening_status);
+    return (p.consensus ? p.consensus.decision : p.decision) === _screeningFilter;
+  });
+  const descending = key => (a, b) =>
+    screeningNumber(b[key], -Infinity) - screeningNumber(a[key], -Infinity) || a.row - b.row;
+  const ascending = key => (a, b) =>
+    screeningNumber(a[key], Infinity) - screeningNumber(b[key], Infinity) || a.row - b.row;
+  const sorter = {
+    inclusion_first: (a, b) => {
+      const group = p => ({ Include: 0, 'Likely include': 1, Maybe: 2, Exclude: 3 }[(p.consensus ? p.consensus.decision : p.decision)] ?? 4);
+      const support = p => {
+        const includes = p.criteria.filter(c => c.type === 'include' && (p.decision !== 'Likely include' || c.criterion_decision === 'passed'));
+        return includes.length ? Math.min(...includes.map(c => c.entailment)) : -1;
+      };
+      const gaps = p => p.criteria.filter(c => c.criterion_decision === 'unresolved').length;
+      return group(a) - group(b) ||
+        (a.decision === 'Likely include' ? gaps(a) - gaps(b) : 0) ||
+        (a.decision === 'Exclude'
+          ? screeningNumber(b.decision_confidence, -1) - screeningNumber(a.decision_confidence, -1)
+          : support(b) - support(a)) || a.row - b.row;
+    },
+    review_order: (a, b) => a.review_order.group_rank - b.review_order.group_rank ||
+      a.review_order.blocking_count - b.review_order.blocking_count ||
+      screeningNumber(a.review_order.score_gap, Infinity) - screeningNumber(b.review_order.score_gap, Infinity) || a.row - b.row,
+    confidence_asc: ascending('decision_confidence'),
+    confidence_desc: descending('decision_confidence'),
+    original: (a, b) => a.row - b.row,
+  }[_screeningSort];
+  return rows.sort(sorter);
+}
+
+function changeScreeningSort(value) {
+  _screeningSort = value;
+  if (_screeningCurrentResults && _screeningCurrentAgreement) {
+    document.getElementById('screeningResultsSection').innerHTML = screeningResultsHTML(
+      _screeningCurrentResults, _screeningCurrentAgreement
+    );
+  }
+}
+
+function changeScreeningFilter(value) {
+  _screeningFilter = value;
+  if (_screeningCurrentResults && _screeningCurrentAgreement) {
+    document.getElementById('screeningResultsSection').innerHTML = screeningResultsHTML(
+      _screeningCurrentResults, _screeningCurrentAgreement
+    );
+  }
+}
+
+function changeScreeningReviewMode(value) {
+  _screeningReviewMode = value;
+  if (_screeningCurrentResults && _screeningCurrentAgreement) {
+    document.getElementById('screeningResultsSection').innerHTML = screeningResultsHTML(
+      _screeningCurrentResults, _screeningCurrentAgreement
+    );
+  }
+}
+
+function calibrationMetric(value) {
+  return typeof value === 'number' ? `${Math.round(value * 100)}%` : '—';
+}
+
+function criterionDiagnosticsHTML(criteria) {
+  const explanations = {
+    frequently_neutral: 'Frequently neutral: check wording, missing abstract evidence, or move assessment to full text.',
+    frequently_uncertain: 'Frequently uncertain: check ambiguous wording and review examples before changing the threshold.',
+  };
+  return `<div class="card">
+    <div class="card-heading">Criterion diagnostics</div>
+    <p class="field-hint">All screened papers, using current criterion thresholds. Confident neutral and below-threshold findings are counted separately.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Criterion</th><th>Papers assessed</th><th>Confident neutral</th><th>Uncertain</th><th>Flags</th></tr></thead>
+      <tbody>${criteria.map(c => {
+        const d = c.diagnostics;
+        return `<tr><td>${esc(c.label)}</td><td>${d.assessed}</td>
+          <td>${d.neutral_count} (${calibrationMetric(d.neutral_rate)})</td>
+          <td>${d.uncertain_count} (${calibrationMetric(d.uncertain_rate)})</td>
+          <td>${d.enough_papers ? d.flags.map(flag => esc(explanations[flag])).join('<br>') || 'No frequency flags' : 'Too few papers for frequency flags'}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function screeningCalibrationHTML(batchId, calibration) {
+  if (!calibration) return '<p>LLM screening uses the configured response contract. There are no criterion scores or thresholds to calibrate.</p>';
+  const current = calibration.current;
+  const suggested = calibration.suggested;
+  const diagnostics = criterionDiagnosticsHTML(calibration.criteria);
+  if (!current.reviewed) return `${diagnostics}
+    <div class="card">
+      <div class="card-heading">Threshold calibration</div>
+      <p class="field-hint">Review individual criterion decisions to generate criterion-specific threshold suggestions. Final paper labels are not used for calibration.</p>
+    </div>`;
+  return `${diagnostics}
+    <div class="card">
+      <div class="card-heading">Threshold calibration</div>
+      <p style="margin-bottom:var(--space-3)">${esc(calibration.warning)}</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th></th><th>Accepted findings</th><th>Agreements</th><th>Disagreements</th><th>Disagreement rate</th><th>Below threshold</th></tr></thead>
+        <tbody>${[['Current', current], ['Suggested', suggested]].map(([name, m]) => `<tr>
+          <th>${name}</th><td>${m.accepted}/${m.reviewed}</td><td>${m.agreements}</td>
+          <td>${m.disagreements}</td><td>${calibrationMetric(m.disagreement_rate)}</td><td>${m.uncertain}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="table-wrap" style="margin-top:var(--space-3)"><table>
+        <thead><tr><th>Criterion</th><th>Reviews</th><th>Current threshold</th><th>Suggested/editable</th><th>Resampled threshold range</th><th>Tuning status / allowed disagreement</th><th></th></tr></thead>
+        <tbody>${calibration.criteria.map((criterion, index) => `
+          <tr>
+            <td>${esc(criterion.label)}</td>
+            <td>${criterion.reviewed}${criterion.ready ? ' ✓' : ''}</td>
+            <td>${criterion.current_threshold}</td>
+            <td><input class="field-input" id="calibration-threshold-${index}" type="number" min="0.5" max="1" step="any" style="width:110px" value="${criterion.suggested_threshold}"></td>
+            <td>${criterion.stability.lower === null ? 'Not available' : criterion.stability.lower.toFixed(4) + ' - ' + criterion.stability.upper.toFixed(4)}</td>
+            <td>${esc({suggested: 'Suggestion available', no_reviews: 'No usable reviews', no_feasible_threshold: 'No feasible threshold'}[criterion.tuning_status])} / ${calibrationMetric(criterion.max_disagreement_rate)}<br>${esc(criterion.stability.status)}</td>
+            <td><button type="button" class="btn-sm" onclick="applyScreeningCalibration('${batchId}',${index})">Apply this only</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      <p class="field-hint">Accepted means the winning finding reaches the threshold, including neutral. It does not mean the paper is eligible. No feasible threshold means the current value is retained without endorsement. Optional resampling describes variability; it does not veto a suggestion.</p>
+      <div class="toolbar" style="margin-top:var(--space-3);margin-bottom:0">
+        <button type="button" class="btn btn-primary" onclick="applyScreeningCalibration('${batchId}')">Apply edited thresholds and reclassify</button>
+        <span id="screeningCalibrationStatus" class="status-msg"></span>
+      </div>
+    </div>`;
+}
+
+function screeningResultsHTML(data, agreement, calibration = _screeningCurrentCalibration) {
+  const counts = { Include: 0, 'Likely include': 0, Exclude: 0, Maybe: 0, missing: 0, inputOverflow: 0, outputOverflow: 0, pending: 0 };
+  data.papers.forEach(p => {
+    if ((p.screening_status || 'screened') === 'missing_abstract') counts.missing++;
+    else if (p.screening_status === 'input_too_long') counts.inputOverflow++;
+    else if (p.screening_status === 'output_too_long') counts.outputOverflow++;
+    else if (p.consensus && !p.consensus.decision) counts.pending++;
+    else { const decision = p.consensus ? p.consensus.decision : p.decision; if (decision in counts) counts[decision]++; }
+  });
+  const sorted = sortedScreeningPapers(data.papers);
+  const criterionTotal = data.papers.reduce((total, paper) => total + paper.criteria.length, 0);
+  const criterionReviewed = data.papers.reduce((total, paper) => total + paper.criteria.filter(c => c.human_decision).length, 0);
+  const pendingLlmJudges = data.papers.filter(p =>
+    ['awaiting_judge', 'judge_failed'].includes(p.consensus?.status) && p.consensus?.roles?.judge === 'llm'
+  ).length;
+  const agreementHTML = agreement.reviewed
+    ? `<span class="status-msg">Your confirmed labels: ${agreement.agreeing}/${agreement.reviewed} agree with the model (${Math.round(agreement.agreement_rate * 100)}%)</span>`
+    : `<span class="field-hint">Expand a paper below and confirm Include/Exclude/Maybe to build an agreement check here.</span>`;
+  return `
+    <div class="toolbar" style="margin-top:var(--space-6)">
+      <h2 class="section-title" style="font-size:var(--font-lg);margin-bottom:0">Results</h2>
+      <span class="status-msg">${data.papers.length} paper(s) · ${decisionBadgeHTML(counts.Include + ' include', 'Include')} · ${decisionBadgeHTML(counts.Exclude + ' exclude', 'Exclude')} · ${decisionBadgeHTML(counts.Maybe + ' maybe', 'Maybe')}</span>
+      ${decisionBadgeHTML(counts['Likely include'] + ' likely include', 'Likely include')}
+      ${decisionBadgeHTML(counts.missing + ' missing abstract', 'Missing abstract')}
+      ${counts.pending ? `<span class="tag">${counts.pending} awaiting panel decision</span>` : ''}
+      ${pendingLlmJudges ? `<button type="button" class="btn btn-primary" onclick="runPanelJudges('${data.batch_id}')">Continue all pending (${pendingLlmJudges})</button>` : ''}
+      <span id="panelJudgeStatus" class="status-msg" role="status" aria-live="polite"></span>
+      ${counts.inputOverflow ? decisionBadgeHTML(counts.inputOverflow + ' input too long', 'Input too long') : ''}
+      ${counts.outputOverflow ? decisionBadgeHTML(counts.outputOverflow + ' output budget exhausted', 'Output too long') : ''}
+      <label class="field-label" for="screeningFilter">Show
+        <select class="field-input" id="screeningFilter" onchange="changeScreeningFilter(this.value)" style="width:auto;display:inline-block;margin-left:6px">
+          <option value="all" ${_screeningFilter === 'all' ? 'selected' : ''}>All records</option>
+          <option value="unreviewed" ${_screeningFilter === 'unreviewed' ? 'selected' : ''}>Needs human review</option>
+          <option value="reviewed" ${_screeningFilter === 'reviewed' ? 'selected' : ''}>Human-reviewed only</option>
+          <option value="Likely include" ${_screeningFilter === 'Likely include' ? 'selected' : ''}>Likely include only</option>
+          <option value="Maybe" ${_screeningFilter === 'Maybe' ? 'selected' : ''}>Maybe only</option>
+          <option value="Include" ${_screeningFilter === 'Include' ? 'selected' : ''}>Include only</option>
+          <option value="Exclude" ${_screeningFilter === 'Exclude' ? 'selected' : ''}>Exclude only</option>
+          <option value="attention" ${_screeningFilter === 'attention' ? 'selected' : ''}>Needs processing</option>
+          <option value="missing" ${_screeningFilter === 'missing' ? 'selected' : ''}>Missing abstract only</option>
+          <option value="overflow" ${_screeningFilter === 'overflow' ? 'selected' : ''}>Input/output too long</option>
+        </select>
+      </label>
+      <label class="field-label" for="screeningSort">Sort
+        <select class="field-input" id="screeningSort" onchange="changeScreeningSort(this.value)" style="width:auto;display:inline-block;margin-left:6px">
+          <option value="inclusion_first" ${_screeningSort === 'inclusion_first' ? 'selected' : ''}>Inclusion first</option>
+          <option value="review_order" ${_screeningSort === 'review_order' ? 'selected' : ''}>Review priority</option>
+          <option value="confidence_asc" ${_screeningSort === 'confidence_asc' ? 'selected' : ''}>Least confident</option>
+          <option value="confidence_desc" ${_screeningSort === 'confidence_desc' ? 'selected' : ''}>Most confident</option>
+          <option value="original" ${_screeningSort === 'original' ? 'selected' : ''}>Spreadsheet order</option>
+        </select>
+      </label>
+      <label class="field-label" for="screeningReviewMode">Review mode
+        <select class="field-input" id="screeningReviewMode" onchange="changeScreeningReviewMode(this.value)" style="width:auto;display:inline-block;margin-left:6px">
+          <option value="operational" ${_screeningReviewMode === 'operational' ? 'selected' : ''}>Operational: show model</option>
+          <option value="calibration" ${_screeningReviewMode === 'calibration' ? 'selected' : ''}>Calibration: decide first</option>
+        </select>
+      </label>
+      <a class="btn btn-secondary" href="/screening/${data.batch_id}/results.xlsx" download>Download Excel</a>
+    </div>
+    <p class="field-hint" style="display:block;margin-bottom:var(--space-3)">${_screeningReviewMode === 'operational' ? 'Machine-first review: inspect the model assessment, then confirm or correct it.' : 'Blind calibration: the model assessment stays hidden until you decide, reducing anchoring in your assessments.'}</p>
+    <p style="margin-bottom:var(--space-4)">${agreementHTML} <span class="field-hint">Criterion reviews: ${criterionReviewed}/${criterionTotal}</span></p>
+    <section class="card" aria-label="Full-text recovery">
+      <div class="card-heading">Papers to recover</div>
+      <p>Recover full texts for Include, Likely include, and Maybe records, plus records with missing abstracts. Your paper-level decision takes precedence; Exclude records are omitted. Failed screening records must be rerun or assigned a paper-level decision.</p>
+      <p>For recovery without a citation-list import, save PDFs under the exact filenames in the recovery list. Otherwise use the import below. Recovery does not confirm full-text eligibility.</p>
+      <div class="toolbar">
+        <a class="btn btn-secondary" href="/screening/${data.batch_id}/recovery.csv" download>Download recovery list</a>
+        <button type="button" class="btn btn-secondary" onclick="checkScreeningRecovery('${data.batch_id}')">Check recovered PDFs</button>
+      </div>
+      <p>Import your reviewer citation list (CSV/XLSX) with a <code>pdf_path</code> column. Paths are relative to the PDF input folder; put original files in a subfolder such as <code>library/</code>. Confirm each proposed link below. Original PDFs remain unchanged.</p>
+      <a href="/screening/${data.batch_id}/recovery/template.csv" download>Download reviewer list template</a>
+      <input type="file" accept=".csv,.xlsx" aria-label="Reviewer citation list" onchange="previewRecoveryLibrary('${data.batch_id}', this.files[0])">
+      <div id="recoveryLibraryPreview" aria-live="polite"></div>
+      <div id="screeningRecoveryStatus" aria-live="polite"></div>
+    </section>
+    ${screeningCalibrationHTML(data.batch_id, calibration)}
+    <p class="field-hint">${data.papers.some(p => p.backend === 'llm') ? 'LLM review order uses uncertain findings and missing evidence, without confidence scores. Ties keep original row order.' : 'Review order: uncertain Maybe, missing-evidence Maybe, Likely include, then optional checks. Within each group: fewer blocking criteria, then smaller top-two score gap. Ties keep original row order.'}</p>
+    <div class="accordion">${sorted.filter(p => p.screening_status === 'screened').map((p, i) => screeningRowHTML(p, i, data.batch_id)).join('')}</div>
+    ${sorted.some(p => p.screening_status !== 'screened') ? '<h3>Needs processing</h3><p>Complete missing abstracts, resolve oversized inputs, or retry failed screening.</p>' : ''}
+    <div class="accordion">${sorted.filter(p => p.screening_status !== 'screened').map((p, i) => screeningRowHTML(p, i, data.batch_id)).join('')}</div>`;
+}
+
+let _recoveryLibrary = null;
+
+async function previewRecoveryLibrary(batchId, file) {
+  if (!file) return;
+  const element = document.getElementById('recoveryLibraryPreview');
+  element.textContent = 'Reading citation list and checking PDFs...';
+  _recoveryLibrary = null;
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch(`/screening/${batchId}/recovery/import`, {method: 'POST', body: form});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Import failed');
+    if (!element.isConnected || _screeningSelectedBatch !== batchId) return;
+    _recoveryLibrary = {batchId, ...data};
+    element.innerHTML = `<p>${data.records.length} records. Matching uses citation metadata supplied in your list; it does not verify the PDF's article identity. Check the selected paper before confirming.</p>
+      <datalist id="recovery-targets">${data.targets.map(p => `<option value="${p.row}">${esc(p.title)} ${esc(p.doi || '')}</option>`).join('')}</datalist>
+      <div class="table-wrap"><table><thead><tr><th>Reviewer citation</th><th>PDF path</th><th>Match</th><th>Screening record</th><th></th></tr></thead>
+      <tbody>${data.records.map((r, i) => {
+        const selected = r.match_status === 'proposed' && r.candidates.length === 1 ? r.candidates[0].row : null;
+        return `<tr><td>${esc(r.title || r.doi)}<br>${esc(r.doi)} ${esc(r.year)}</td><td>${esc(r.pdf_path)}</td>
+          <td>${esc(r.file_error || r.match_status)}</td>
+          <td><input id="recovery-target-${i}" list="recovery-targets" value="${selected ?? ''}" placeholder="Screening row" aria-label="Screening record for imported row ${r.library_row}"></td><td><button type="button" class="btn-sm" ${r.file_error ? 'disabled' : ''} onclick="confirmRecoveryLink('${batchId}',${i},this)">Confirm link</button><span id="recovery-link-status-${i}"></span></td></tr>`;
+      }).join('')}</tbody></table></div>`;
+  } catch (error) {
+    if (element.isConnected) element.textContent = error.message;
+  }
+}
+
+async function confirmRecoveryLink(batchId, index, button) {
+  const library = _recoveryLibrary;
+  if (!library || library.batchId !== batchId) return;
+  const status = document.getElementById(`recovery-link-status-${index}`);
+  const target = Number(document.getElementById(`recovery-target-${index}`).value);
+  if (!target) { status.textContent = ' Select a screening record'; return; }
+  button.disabled = true;
+  try {
+    const response = await fetch(`/screening/${batchId}/recovery/link`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({import_id: library.import_id, library_row: library.records[index].library_row, screening_row: target}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Link failed');
+    status.textContent = ' Linked';
+    await checkScreeningRecovery(batchId);
+  } catch (error) {
+    status.textContent = ' ' + error.message;
+    button.disabled = false;
+  }
+}
+
+async function checkScreeningRecovery(batchId) {
+  const element = document.getElementById('screeningRecoveryStatus');
+  element.textContent = 'Checking folder…';
+  try {
+    const response = await fetch(`/screening/${batchId}/recovery`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Could not check recovered PDFs');
+    if (_screeningSelectedBatch !== batchId || !element.isConnected) return;
+    const present = data.papers.filter(p => p.file_status === 'present').length;
+    element.innerHTML = `<p>Input folder: <code>${esc(data.folder)}</code></p><p>${present} / ${data.papers.length} PDFs found. Open a recovered paper to continue with parsing and extraction. File presence checks the PDF signature; parsing checks whether it can be processed.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Title</th><th>Decision</th><th>PDF filename</th><th>File status</th><th></th></tr></thead>
+        <tbody>${data.papers.map(p => `<tr>
+          <td>${esc(p.title || '(No title)')}</td><td>${esc(p.decision || 'Missing abstract')}</td>
+          <td><code>${esc(p.pdf_filename)}</code></td><td>${esc(p.file_status)}</td>
+          <td>${p.file_status === 'present' ? `<button type="button" class="btn-sm" onclick="selectPaper('${p.record_id}')">Open paper</button>` : ''}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+    await refreshPapers();
+  } catch (error) {
+    element.textContent = error.message;
+  }
+}
+
+function nliScoreBarHTML(label, value, className, threshold = null) {
+  const score = screeningNumber(value, 0);
+  const pct = Math.max(0, Math.min(100, score * 100));
+  const marker = threshold === null ? '' : `<span class="nli-threshold-marker" style="left:${Math.max(0, Math.min(100, threshold * 100))}%" title="Threshold ${threshold.toFixed(2)}"></span>`;
+  return `
+    <div class="nli-score-row">
+      <span class="nli-score-label">${label}</span>
+      <div class="nli-score-track" role="img" aria-label="${label} probability ${score.toFixed(3)}${threshold === null ? '' : `, threshold ${threshold.toFixed(2)}`}">
+        <div class="nli-score-fill ${className}" style="width:${pct}%"></div>${marker}
+      </div>
+      <span class="nli-score-value">${score.toFixed(3)}</span>
+    </div>`;
+}
+
+function unresolvedReasonHTML(criterion, decision, threshold) {
+  if (decision !== 'unresolved') return '';
+  const scores = ['entailment', 'contradiction', 'neutral'].map(label => [
+    label, screeningNumber(criterion[label], 0),
+  ]).sort((a, b) => b[1] - a[1]);
+  const [winner, score] = scores[0];
+  const message = criterion.finding === 'not_established' ? 'The model favors neutral: the statement is not established by this text.' : criterion.finding === 'uncertain' ? 'No class reaches its threshold; the finding is uncertain.' : winner === 'neutral'
+    ? `Neutral is the highest probability (${score.toFixed(3)}). Changing the threshold cannot make this decision automatic.`
+    : `${winner[0].toUpperCase() + winner.slice(1)} is highest (${score.toFixed(3)}) but below the ${threshold.toFixed(2)} threshold.`;
+  return `<p class="field-hint" style="display:block;margin-bottom:var(--space-3)">${esc(message)}</p>`;
+}
+
+function screeningCriteriaRowsHTML(criteria, batchId, paperRow) {
+  const labels = { passed: 'Passed', failed: 'Failed', cleared: 'Cleared', hit: 'Exclusion hit', unresolved: 'Unresolved' };
+  const decisions = { passed: 'Include', cleared: 'Include', failed: 'Exclude', hit: 'Exclude', unresolved: 'Maybe' };
+  return criteria.map((c, criterionIndex) => {
+    const criterionDecision = c.criterion_decision || 'unresolved';
+    const threshold = screeningNumber(c.confidence_threshold, 0.8);
+    const humanLabels = c.type === 'include'
+      ? [['passed', 'Supported'], ['failed', 'Contradicted'], ['unresolved', c.backend === 'llm' ? 'Uncertain' : 'Not established']]
+      : [['hit', 'Supported'], ['cleared', 'Contradicted'], ['unresolved', c.backend === 'llm' ? 'Uncertain' : 'Not established']];
+    const reviewedClass = ({supported: 'entailment', contradicted: 'contradiction', not_established: 'neutral'})[c.human_finding];
+    const agrees = c.backend === 'llm' && c.human_finding ? c.human_finding === c.finding : reviewedClass ? reviewedClass === c.status : c.human_decision === criterionDecision;
+    const humanLabel = humanLabels.find(item => item[0] === c.human_decision)?.[1] || c.human_decision;
+    const reviewerButtons = humanLabels.map(item => `<button type="button" class="btn-sm ${c.human_decision === item[0] ? 'selected' : ''}" aria-pressed="${c.human_decision === item[0]}" onclick="confirmScreeningCriterionLabel('${batchId}',${paperRow},${criterionIndex},'${item[0]}',${c.backend === 'llm'})">${item[1]}</button>`).join('');
+    const showModel = _screeningReviewMode === 'operational' || Boolean(c.human_decision);
+    const modelPanel = showModel ? `
+      <div class="model-assessment">
+        <div class="model-assessment-heading">
+          <span class="field-label">Model assessment</span>
+          ${decisionBadgeHTML(labels[criterionDecision] || criterionDecision, decisions[criterionDecision] || 'Maybe')}
+          <span class="review-agreement ${agrees ? 'yes' : 'no'}">${!c.human_decision ? 'Not reviewed' : agrees ? 'Agrees with reviewer' : 'Disagrees with reviewer'}</span>
+          ${c.backend === 'llm' ? `<span class="field-hint">${esc(c.finding)}</span>` : `<span class="field-hint">threshold ${threshold.toFixed(2)}</span>`}
+        </div>
+        ${c.explicit_evidence_required && (c.finding === 'not_established' || c.backend === 'llm' && c.finding === 'uncertain') && criterionDecision === 'failed'
+          ? '<p class="field-hint">Rejected because this inclusion criterion requires explicit abstract evidence.</p>' : ''}
+        ${c.backend === 'llm' ? `${c.quote != null ? `<blockquote>${esc(c.quote)}</blockquote>` : ''}${c.model_confidence != null ? `<p>Model-reported confidence (uncalibrated): ${esc(String(c.model_confidence))}</p>` : ''}<p class="field-hint">${esc(c.reason || ({uncertain: 'Evidence is missing, insufficient, ambiguous, or conflicting.', not_established: 'The text does not establish or refute this criterion.'}[c.finding] || ''))}</p>` : `
+        ${unresolvedReasonHTML(c, criterionDecision, threshold)}
+        ${nliScoreBarHTML('Entailment', c.entailment, 'nli-score-entailment', threshold)}
+        ${nliScoreBarHTML('Contradiction', c.contradiction, 'nli-score-contradiction', threshold)}
+        ${nliScoreBarHTML('Neutral', c.neutral, 'nli-score-neutral', threshold)}`}
+      </div>` : '<div class="model-hidden">Model assessment is hidden until you review this criterion.</div>';
+    return `
+      <div class="criterion-review-card">
+        <div class="criterion-review-heading">
+          <div><strong>${esc(c.label)}</strong> <span class="field-hint">${esc(c.type)} criterion</span></div>
+          ${c.human_decision ? `<span class="tag">reviewer: ${esc(humanLabel)}</span>` : '<span class="field-hint">Not reviewed</span>'}
+        </div>
+        <p style="margin-bottom:var(--space-3);color:var(--color-text-secondary)">${esc(c.statement || '')}</p>
+        <div class="criterion-review-actions">
+          <span class="field-label">Your assessment</span>
+          ${reviewerButtons}
+          ${c.human_decision ? `<button type="button" class="btn-sm" onclick="confirmScreeningCriterionLabel('${batchId}',${paperRow},${criterionIndex},null)">Clear</button>` : ''}
+        </div>
+        ${modelPanel}
+      </div>`;
+  }).join('');
+}
+
+function screeningRowHTML(p, i, batchId) {
+  const bodyId = `screening-row-${p.row}`;
+  const blindSecond = p.consensus?.roles?.second_reviewer === 'human' && !p.consensus.second_reviewer;
+  const humanBadge = p.human_decision ? decisionBadgeHTML(`you: ${p.human_decision}`, p.human_decision) : '';
+  const isMissing = (p.screening_status || 'screened') === 'missing_abstract';
+  const isOverflow = p.screening_status === 'input_too_long';
+  const isOutputOverflow = p.screening_status === 'output_too_long';
+  const shownDecision = p.consensus ? (p.consensus.decision || p.consensus.status.replaceAll('_', ' ')) : p.reason === 'free_text_requires_review' ? 'Read model answer' : isOverflow ? 'Input too long' : isOutputOverflow ? 'Output budget exhausted' : isMissing ? 'Missing abstract' : p.screening_status === 'screening_failed' ? 'Screening failed' : (p.decision || 'Maybe');
+  const order = p.review_order;
+  const groupLabel = {uncertain: 'Uncertain findings', missing_evidence: 'Missing evidence', confirm_inclusion_gaps: 'Confirm inclusion gaps', optional_check: 'Optional check', needs_processing: 'Needs processing'}[order.group];
+  const metrics = p.backend === 'llm' ? `${groupLabel} | ${order.blocking_count} blocking` : order.group === 'needs_processing' ? '' : `${groupLabel} | ${order.blocking_count} blocking | score gap ${order.score_gap === null ? 'N/A' : order.score_gap.toFixed(3)}`;
+  return `
+    <div>
+      <button type="button" class="acc-header" data-paper-row="${esc(String(p.row))}" aria-expanded="false" aria-controls="${bodyId}" onclick="toggleAcc(this)">
+        <span style="flex:1;text-align:left">${esc(p.title || '(no title)')}</span>
+        <span class="acc-meta">${decisionBadgeHTML(shownDecision, shownDecision)} ${p.consensus ? '' : humanBadge} &nbsp;${blindSecond ? '' : metrics}</span>
+      </button>
+      <div class="acc-body" id="${bodyId}">
+        <p style="font-size:var(--font-base);color:var(--color-text-secondary);margin-bottom:var(--space-3);white-space:pre-wrap">${esc(p.abstract || '(no abstract)')}</p>
+        <p class="field-hint" style="display:block;margin-bottom:var(--space-3)">Decision reason: ${blindSecond ? 'Independent second review pending' : esc(p.reason || 'not recorded')}</p>
+        ${(p.input_issues || []).map(issue => `<p>${esc(issue.criterion)}: ${issue.token_count} tokens / ${issue.token_limit} limit (${issue.excess_tokens} over). No paper decision was made.</p>`).join('')}
+        ${blindSecond ? '' : screeningCriteriaRowsHTML(p.criteria, batchId, p.row)}
+        ${p.consensus ? screeningPanelHTML(p, batchId) : ''}
+        ${!blindSecond && p.backend === 'llm' && (_screeningReviewMode === 'operational' || p.human_decision) ? `
+          <p>Model output: <strong>${esc(p.llm_output?.text || p.llm_output?.decision || p.decision || 'No valid decision')}</strong></p>
+          ${p.llm_output && !p.llm_output.criteria ? `${p.llm_output.reason ? `<p>${esc(p.llm_output.reason)}</p>` : ''}${p.llm_output.quote != null ? `<blockquote>${esc(p.llm_output.quote)}</blockquote>` : ''}${p.llm_output.confidence != null ? `<p>Model-reported confidence (uncalibrated): ${esc(String(p.llm_output.confidence))}</p>` : ''}` : ''}
+          <details><summary>Inspect model input and raw output</summary>
+            ${p.llm_calls?.length ? `<pre style="white-space:pre-wrap">${esc(JSON.stringify(p.llm_calls, null, 2))}</pre>` : ''}
+            <pre style="white-space:pre-wrap">${esc(JSON.stringify(p.llm_request, null, 2))}</pre>
+            <pre style="white-space:pre-wrap">${esc(p.llm_response || '(no response)')}</pre>
+            ${p.llm_attempts?.length ? `<pre style="white-space:pre-wrap">${esc(JSON.stringify(p.llm_attempts, null, 2))}</pre>` : ''}
+          </details>` : ''}
+        ${p.consensus ? '' : isOverflow ? '<p>Review this record or shorten its input before rerunning screening.</p>' : isOutputOverflow ? '<p>The model exhausted the enlarged retry budget. Increase the initial budget or retry multiplier, then rerun screening.</p>' : isMissing ? '<p class="field-hint">No model decision was made. Complete the abstract before screening this record.</p>' : `<div class="toolbar" style="margin-top:var(--space-3);margin-bottom:0">
+          <span class="field-hint">Optional final paper judgment:</span>
+          <button type="button" class="btn-sm" onclick="confirmScreeningLabel('${batchId}', ${p.row}, 'Include')">Include</button>
+          <button type="button" class="btn-sm" onclick="confirmScreeningLabel('${batchId}', ${p.row}, 'Exclude')">Exclude</button>
+          <button type="button" class="btn-sm" onclick="confirmScreeningLabel('${batchId}', ${p.row}, 'Likely include')">Likely include</button>
+          <button type="button" class="btn-sm" onclick="confirmScreeningLabel('${batchId}', ${p.row}, 'Maybe')">Maybe (provisional)</button>
+          ${p.human_decision ? `<button type="button" class="btn-sm" onclick="confirmScreeningLabel('${batchId}', ${p.row}, null)">Clear</button>` : ''}
+        </div>`}
+      </div>
+    </div>`;
+}
+
+function screeningAssessmentHTML(label, assessment) {
+  if (!assessment) return '';
+  const criteria = (assessment.criteria || []).map(item => `
+    <li><strong>${esc(item.label || 'Criterion')}:</strong> ${esc(item.finding || item.criterion_decision || 'not recorded')}
+      ${item.reason ? ` — ${esc(item.reason)}` : ''}${item.quote ? `<blockquote>${esc(item.quote)}</blockquote>` : ''}</li>`).join('');
+  return `<div class="criterion-review-card">
+    <div class="criterion-review-heading"><strong>${esc(label)}</strong><span class="tag">${esc(assessment.kind || 'reviewer')}${assessment.model ? `: ${esc(assessment.model)}` : ''}</span></div>
+    <p>Decision: <strong>${esc(assessment.decision || 'Failed')}</strong></p>
+    ${assessment.reason ? `<p>${esc(assessment.reason)}</p>` : '<p class="field-hint">No reason recorded.</p>'}
+    ${assessment.quote ? `<blockquote>${esc(assessment.quote)}</blockquote>` : ''}
+    ${assessment.confidence != null ? `<p class="field-hint">Model-reported confidence (uncalibrated): ${esc(String(assessment.confidence))}</p>` : ''}
+    ${criteria ? `<ul>${criteria}</ul>` : ''}
+  </div>`;
+}
+
+function screeningPanelHTML(p, batchId) {
+  const panel = p.consensus;
+  const waiting = panel.status === 'awaiting_second_reviewer' ? 'second_reviewer' : panel.status === 'awaiting_judge' ? 'judge' : null;
+  const role = waiting && panel.roles?.[waiting] === 'human' ? waiting : null;
+  const primary = panel.primary || {kind: 'llm', decision: p.decision, reason: p.llm_output?.reason, quote: p.llm_output?.quote, confidence: p.llm_output?.confidence, criteria: p.criteria};
+  const visible = panel.second_reviewer
+    ? screeningAssessmentHTML('Primary reviewer', primary)
+      + screeningAssessmentHTML('Second reviewer', panel.second_reviewer)
+      + screeningAssessmentHTML('Judge', panel.judge)
+    : '';
+  const reasonRule = role === 'judge' && panel.require_judge_reason ? ' required' : ' optional';
+  return `<p><strong>Review panel: ${esc(panel.status.replaceAll('_', ' '))}</strong></p>
+    <ul>${(panel.criteria || []).map(c => `<li>${esc(c.type)}: ${esc(c.statement)}${c.explicit_evidence_required ? ' (explicit evidence required)' : ''}</li>`).join('')}</ul>
+    ${visible}
+    ${role ? `<p>Your role: ${esc(role.replaceAll('_', ' '))}</p><textarea id="panel-reason-${p.row}" placeholder="Reason (${reasonRule.trim()})"></textarea>
+      ${['Include', 'Exclude'].map(decision => `<button class="btn-sm" onclick="submitPanelReview('${batchId}',${p.row},'${role}','${decision}','${panel.fingerprint}')">${decision}</button>`).join('')}` : ''}
+    ${waiting === 'judge' && panel.roles?.judge === 'llm' ? `<button class="btn-sm" onclick="runPanelJudges('${batchId}',${p.row})">Continue with judge</button>` : ''}
+    ${panel.second_reviewer ? `<details><summary>Review audit</summary><pre>${esc(JSON.stringify(panel, null, 2))}</pre></details>` : ''}`;
+}
+
+async function runPanelJudges(batchId, row = null) {
+  const status = document.getElementById('panelJudgeStatus');
+  if (status) { status.textContent = 'Adjudication queued…'; status.className = 'status-msg pending'; }
+  const url = row == null
+    ? `/screening/${batchId}/panel/judge/run`
+    : `/screening/${batchId}/papers/${row}/panel/judge/run`;
+  const response = await fetch(url, {method: 'POST'});
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (status) { status.textContent = body.detail || 'Could not start adjudication'; status.className = 'status-msg err'; }
+    else alert(body.detail || 'Could not start adjudication');
+    return;
+  }
+  const timer = setInterval(async () => {
+    const job = await fetch(`/jobs/${body.job_id}`).then(result => result.json());
+    if (job.status !== 'done' && job.status !== 'error') return;
+    clearInterval(timer);
+    if (job.status === 'error') {
+      if (status) { status.textContent = `Adjudication failed: ${job.error}`; status.className = 'status-msg err'; }
+      else alert(`Adjudication failed: ${job.error}`);
+      return;
+    }
+    await loadScreeningResults(batchId, true);
+  }, 1500);
+}
+
+async function submitPanelReview(batchId, row, role, decision, fingerprint) {
+  const response = await fetch(`/screening/${batchId}/papers/${row}/panel/${role}`, {
+    method: 'PUT', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({decision, fingerprint, reason: document.getElementById(`panel-reason-${row}`).value}),
+  });
+  if (!response.ok) { alert((await response.json()).detail || 'Could not save review'); return; }
+  await loadScreeningResults(batchId, true);
+}
+
+async function confirmScreeningLabel(batchId, row, decision) {
+  await fetch(`/screening/${batchId}/papers/${row}/label`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ human_decision: decision }),
+  });
+  await loadScreeningResults(batchId, true);
+}
+
+async function confirmScreeningCriterionLabel(batchId, row, criterionIndex, decision, isLlm = false) {
+  await fetch(`/screening/${batchId}/papers/${row}/criteria/${criterionIndex}/label`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ human_decision: decision, human_finding: ({passed: 'supported', hit: 'supported', failed: 'contradicted', cleared: 'contradicted', unresolved: isLlm ? 'uncertain' : 'not_established'})[decision] ?? null }),
+  });
+  await loadScreeningResults(batchId, true);
+}
+
+async function applyScreeningCalibration(batchId, onlyIndex = null) {
+  if (!confirm('Apply these criterion thresholds and reclassify this batch?')) return;
+  const criteria = _screeningCurrentCalibration.criteria;
+  const criterionThresholds = {};
+  criteria.forEach((criterion, index) => {
+    if (onlyIndex === null || index === onlyIndex) {
+      criterionThresholds[criterion.label] = Number(document.getElementById(`calibration-threshold-${index}`).value);
+    }
+  });
+  if (Object.values(criterionThresholds).some(value => !Number.isFinite(value) || value < 0.5 || value > 1)) {
+    alert('Every threshold must be between 0.5 and 1.0.');
+    return;
+  }
+  const status = document.getElementById('screeningCalibrationStatus');
+  status.textContent = 'Applying…'; status.className = 'status-msg pending';
+  const res = await fetch(`/screening/${batchId}/calibration/apply`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ criterion_thresholds: criterionThresholds }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    status.textContent = error.detail || 'Could not apply calibration'; status.className = 'status-msg err';
+    return;
+  }
+  _screeningCriteria = _screeningCriteria.map(criterion => ({
+    ...criterion,
+    confidence_threshold: criterionThresholds[criterion.label] ?? criterion.confidence_threshold,
+  }));
+  await loadScreeningResults(batchId);
+}
+
+
+refreshPapers();
+setInterval(refreshPapers, 5000);
+</script>
+</body>
+</html>

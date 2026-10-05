@@ -1,0 +1,6 @@
+Evaluate whether the title and abstract establish the supplied criterion.
+
+- Return "yes" only when concrete information about the studied or analyzed experience establishes the criterion.
+- Return "no" when the criterion is contradicted or when the title and abstract do not establish it.
+- A related topic, background statement, or incidental example is not evidence that the criterion is met.
+- Focus only on the decisive evidence. Do not repeat the criterion or summarize the abstract.

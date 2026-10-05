@@ -1,0 +1,22 @@
+services:
+  pipeline:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file: .env
+    environment:
+      PIPELINE__SERVER__HOST: 0.0.0.0
+      PIPELINE__EMBEDDING__DEVICE: cpu
+      PIPELINE__RERANKER__DEVICE: cpu
+      PIPELINE__NLI__DEVICE: cpu
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./data_table.json:/app/data_table.json
+      - ./screening_criteria.json:/app/screening_criteria.json
+      - model-cache:/root/.cache
+    stop_grace_period: 5m
+    restart: unless-stopped
+
+volumes:
+  model-cache:

@@ -1,0 +1,22 @@
+{
+  "api_url": null,
+  "backend": "pipeline",
+  "parse_method": "auto",
+  "language": "en",
+  "formula_enable": true,
+  "table_enable": true,
+  "image_analysis": false,
+  "server_url": null,
+  "effort": null,
+  "start_page_id": 0,
+  "end_page_id": null,
+  "return_md": true,
+  "return_middle_json": false,
+  "return_model_output": false,
+  "return_content_list": false,
+  "return_images": true,
+  "response_format_zip": true,
+  "return_original_file": false,
+  "http_timeout": 600,
+  "task_timeout": 3600
+}

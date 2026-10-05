@@ -1,0 +1,100 @@
+{
+  "schema_version": "3.0",
+  "groups": [
+    {
+      "label": "Population",
+      "fields": [
+        {
+          "id": "sample_size_recruited",
+          "label": "Sample size recruited",
+          "description": "How many participants were initially recruited or enrolled?",
+          "rules": "Extract only an explicitly reported recruited/enrolled count. Do not substitute the analysed or active sample.",
+          "value_type": "integer"
+        },
+        {
+          "id": "sample_size_analysed",
+          "label": "Sample size analysed",
+          "description": "How many participants were included in the final analysis?",
+          "rules": "Extract the final analysed count. Keep distinct from recruited, registered, and active-intervention counts.",
+          "value_type": "integer"
+        },
+        {
+          "id": "sample_size_active_intervention",
+          "label": "Sample size active intervention",
+          "description": "How many participants were active during the gamification intervention phase?",
+          "rules": "Use the intervention-phase active count, not the number ever registered or active in earlier phases.",
+          "value_type": "integer"
+        },
+        {
+          "id": "participant_age",
+          "label": "Participant age",
+          "description": "What participant age information is explicitly reported?",
+          "rules": "Return the reported mean and SD, range, or minimum-age condition as written. Use not_reported when absent, not N/A.",
+          "value_type": "string"
+        },
+        {
+          "id": "stakeholder_category",
+          "label": "Stakeholder category",
+          "description": "Which stakeholder population participated in the evaluated intervention?",
+          "rules": "Select one or more supported categories.",
+          "value_type": "array",
+          "allowed_values": ["General public", "Commuters", "Employees", "Primary school students", "High school students", "Kindergarten children", "Teachers", "Parents", "Other"]
+        }
+      ]
+    },
+    {
+      "label": "Intervention",
+      "fields": [
+        {
+          "id": "intervention_tool_name",
+          "label": "Intervention tool name",
+          "description": "What is the exact name of the application, game, or software framework evaluated?",
+          "rules": "Return the exact name used by participants in the evaluated case study. Ignore tools mentioned only in related work or back-end architecture.",
+          "value_type": "string"
+        },
+        {
+          "id": "intervention_platform",
+          "label": "Intervention platform",
+          "description": "On which technical platform was the evaluated intervention delivered?",
+          "rules": "Identify the participant-facing delivery platform used during the intervention, not the back-end technical architecture.",
+          "value_type": "string"
+        },
+        {
+          "id": "total_experiment_duration",
+          "label": "Total experiment duration",
+          "description": "How long did the complete study or experiment last?",
+          "rules": "Keep this separate from the duration of the gamification treatment phase.",
+          "value_type": "string"
+        },
+        {
+          "id": "gamification_intervention_duration",
+          "label": "Gamification intervention duration",
+          "description": "How long were participants exposed specifically to the gamification intervention?",
+          "rules": "Extract the treatment-phase duration, not baseline, recruitment, or total study duration.",
+          "value_type": "string"
+        },
+        {
+          "id": "post_intervention_follow_up_performed",
+          "label": "Post-intervention follow-up performed",
+          "description": "Was participant behaviour measured after the intervention ended?",
+          "rules": "Return true only when post-intervention monitoring is explicitly described, false only when its absence is explicit, and not_reported otherwise.",
+          "value_type": "boolean"
+        },
+        {
+          "id": "post_intervention_follow_up_duration",
+          "label": "Post-intervention follow-up duration",
+          "description": "For how long were participants followed after the intervention ended?",
+          "rules": "Extract only an explicit post-intervention period. Do not infer zero from silence.",
+          "value_type": "string"
+        },
+        {
+          "id": "encouraged_transport_modes",
+          "label": "Encouraged transport modes",
+          "description": "Which sustainable transport modes did the intervention explicitly encourage?",
+          "rules": "Return a list of modes directly connected to the intervention, excluding modes mentioned only as background or outcomes.",
+          "value_type": "array"
+        }
+      ]
+    }
+  ]
+}

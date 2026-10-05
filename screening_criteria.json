@@ -1,0 +1,26 @@
+{
+  "schema_version": "2.2",
+  "criteria": [
+    {
+      "explicit_evidence_required": false,
+      "label": "Active interaction",
+      "statement": "The paper concerns play or active interaction involving human participants. Interaction can qualify even when it is not called play or a game.",
+      "type": "include",
+      "confidence_threshold": 0.8
+    },
+    {
+      "explicit_evidence_required": false,
+      "label": "Focus",
+      "statement": "The experience challenges human centrality or it meaningfully engages with nature, non-human entities, or environmental action.",
+      "type": "include",
+      "confidence_threshold": 0.8
+    },
+    {
+      "explicit_evidence_required": false,
+      "label": "Digital Medium",
+      "statement": "The play or interaction has a digital component. Purely physical play without a digital counterpart does not qualify.",
+      "type": "include",
+      "confidence_threshold": 0.8
+    }
+  ]
+}

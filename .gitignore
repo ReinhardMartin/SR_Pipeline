@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+data/
+README.md
+.env
+.pytest_cache/
+.coverage
+.venv/
+docker-build.log
+
+.ruff_cache/
+*.log
+*.lock
